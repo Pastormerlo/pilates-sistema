@@ -28,8 +28,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- RUTAS DE ACCESO ---
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -49,8 +47,6 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- RUTAS DE ALUMNOS ---
-
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -65,21 +61,14 @@ def alumnos():
 @login_required
 def agregar_alumno():
     datos = (
-        request.form.get('nombre'),
-        request.form.get('apellido'),
-        request.form.get('dni'),
-        request.form.get('domicilio'),
-        request.form.get('telefono'),
-        request.form.get('contacto_emergencia'),
+        request.form.get('nombre'), request.form.get('apellido'),
+        request.form.get('dni'), request.form.get('domicilio'),
+        request.form.get('telefono'), request.form.get('contacto_emergencia'),
         request.form.get('fecha_nacimiento') or None,
-        request.form.get('peso') or None,
-        request.form.get('altura') or None,
-        request.form.get('patologias_cirugias'),
-        request.form.get('obra_social'),
-        request.form.get('medico_cabecera'),
-        request.form.get('observaciones')
+        request.form.get('peso') or None, request.form.get('altura') or None,
+        request.form.get('patologias_cirugias'), request.form.get('obra_social'),
+        request.form.get('medico_cabecera'), request.form.get('observaciones')
     )
-    
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
@@ -97,19 +86,13 @@ def agregar_alumno():
 @login_required
 def editar_alumno(id):
     datos = (
-        request.form.get('nombre'),
-        request.form.get('apellido'),
-        request.form.get('dni'),
-        request.form.get('domicilio'),
-        request.form.get('telefono'),
-        request.form.get('contacto_emergencia'),
+        request.form.get('nombre'), request.form.get('apellido'),
+        request.form.get('dni'), request.form.get('domicilio'),
+        request.form.get('telefono'), request.form.get('contacto_emergencia'),
         request.form.get('fecha_nacimiento') or None,
-        request.form.get('peso') or None,
-        request.form.get('altura') or None,
-        request.form.get('patologias_cirugias'),
-        request.form.get('obra_social'),
-        request.form.get('medico_cabecera'),
-        request.form.get('observaciones'),
+        request.form.get('peso') or None, request.form.get('altura') or None,
+        request.form.get('patologias_cirugias'), request.form.get('obra_social'),
+        request.form.get('medico_cabecera'), request.form.get('observaciones'),
         id
     )
     conn = conectar()
@@ -134,8 +117,6 @@ def eliminar_alumno(id):
     conn.commit()
     conn.close()
     return redirect(url_for('alumnos'))
-
-# --- RUTAS DE FACTURACIÓN ---
 
 @app.route('/facturacion')
 @login_required
