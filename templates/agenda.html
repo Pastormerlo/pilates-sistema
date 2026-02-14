@@ -2,7 +2,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-white rounded shadow-sm">
     <div>
-        <h4 class="fw-bold mb-0 text-dark">Agenda de Clases</h4>
+        <h4 class="fw-bold mb-0 text-dark">Agenda</h4>
         <small class="text-primary fw-bold">{{ inicio.strftime('%d/%m') }} al {{ fin.strftime('%d/%m') }}</small>
     </div>
     <div class="d-flex gap-2">
@@ -11,7 +11,7 @@
             <a href="/agenda" class="btn btn-sm btn-outline-secondary">Hoy</a>
             <a href="/agenda?fecha={{ (inicio + timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-chevron-right"></i></a>
         </div>
-        <button class="btn btn-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalTurno">+ Agendar</button>
+        <button class="btn btn-primary btn-sm px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTurno">+ Agendar</button>
     </div>
 </div>
 
@@ -19,19 +19,21 @@
     {% set dias_nombres = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}
     {% for dia in dias_nombres %}
     <div class="col">
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-dark text-white py-2 text-center small fw-bold">{{ dia }}</div>
-            <div class="card-body p-2 bg-light" style="min-height: 200px;">
+            <div class="card-body p-2 bg-light drop-zone" style="min-height: 250px;" data-dia="{{ dia }}">
                 {% set turnos_dia = turnos | selectattr('dia_semana', 'equalto', dia) | list %}
                 {% if turnos_dia %}
                     {% for t in turnos_dia %}
-                    <div class="bg-white border-bottom p-2 mb-1 rounded shadow-sm d-flex justify-content-between align-items-center">
-                        <span class="small"><strong>{{ t.nombre }} {{ t.apellido }}</strong></span>
-                        <span class="text-primary fw-bold small">{{ t.hora.strftime('%H:%M') }}</span>
+                    <div class="bg-white border-bottom p-2 mb-2 rounded shadow-sm d-flex justify-content-between align-items-center draggable" 
+                         draggable="true" data-id="{{ t.id }}" style="cursor: grab;">
+                        <span class="small"><strong>{{ t.nombre }} {{ t.apellido }}</strong> - {{ t.hora.strftime('%H:%M') }}</span>
+                        <a href="{{ url_for('eliminar_turno', id=t.id, fecha_ref=inicio.strftime('%Y-%m-%d')) }}" 
+                           class="text-danger ms-2" onclick="return confirm('¿Quitar de la agenda?')">
+                            <i class="fas fa-times-circle"></i>
+                        </a>
                     </div>
                     {% endfor %}
-                {% else %}
-                    <div class="text-center py-4 text-muted small opacity-50">Sin clases</div>
                 {% endif %}
             </div>
         </div>
@@ -39,13 +41,48 @@
     {% endfor %}
 </div>
 
+<script>
+    const draggables = document.querySelectorAll('.draggable');
+    const containers = document.querySelectorAll('.drop-zone');
+
+    draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', () => draggable.classList.add('dragging'));
+        draggable.addEventListener('dragend', () => draggable.classList.remove('dragging'));
+    });
+
+    containers.forEach(container => {
+        container.addEventListener('dragover', e => e.preventDefault());
+        container.addEventListener('drop', e => {
+            e.preventDefault();
+            const draggable = document.querySelector('.dragging');
+            const turnoId = draggable.getAttribute('data-id');
+            const nuevoDia = container.getAttribute('data-dia');
+            
+            fetch('/mover_turno', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    id: turnoId,
+                    dia_semana: nuevoDia,
+                    fecha_inicio: "{{ inicio.strftime('%Y-%m-%d') }}"
+                })
+            }).then(() => location.reload());
+        });
+    });
+</script>
+
+<style>
+    .dragging { opacity: 0.5; cursor: grabbing !important; }
+    .drop-zone:hover { background-color: #e9ecef !important; border: 2px dashed #0d6efd; }
+</style>
+
 <div class="modal fade" id="modalTurno" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content border-0">
             <form action="/agregar_turno" method="POST">
                 <input type="hidden" name="fecha_inicio" value="{{ inicio.strftime('%Y-%m-%d') }}">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Agendar nueva clase</h5>
+                    <h5 class="modal-title fw-bold">Agendar Clase</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -70,12 +107,12 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Observaciones (Opcional)</label>
-                        <input type="text" name="observaciones" class="form-control" placeholder="Ej: Trae certificado">
+                        <label class="form-label small fw-bold">Observaciones</label>
+                        <input type="text" name="observaciones" class="form-control">
                     </div>
                 </div>
                 <div class="modal-footer border-0">
-                    <button type="submit" class="btn btn-primary w-100 fw-bold">GUARDAR CLASE</button>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2">CONFIRMAR TURNO</button>
                 </div>
             </form>
         </div>
