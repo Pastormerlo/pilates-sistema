@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from functools import wraps
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -29,7 +29,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- RUTAS DE ACCESO ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -49,7 +48,7 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- RUTAS DE ALUMNOS (13 CAMPOS) ---
+# --- ALUMNOS (Mantiene los 13 campos) ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -93,8 +92,7 @@ def editar_alumno(id):
         request.form.get('fecha_nacimiento') or None,
         request.form.get('peso') or None, request.form.get('altura') or None,
         request.form.get('patologias_cirugias'), request.form.get('obra_social'),
-        request.form.get('medico_cabecera'), request.form.get('observaciones'),
-        id
+        request.form.get('medico_cabecera'), request.form.get('observaciones'), id
     )
     conn = conectar()
     cur = conn.cursor()
@@ -118,7 +116,7 @@ def eliminar_alumno(id):
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- RUTA DE AGENDA ---
+# --- AGENDA (Nuevas funciones Eliminar y Mover) ---
 @app.route('/agenda')
 @login_required
 def agenda():
@@ -157,13 +155,39 @@ def agregar_turno():
     cur.execute("""
         INSERT INTO turnos (alumno_id, dia_semana, hora, fecha, observaciones) 
         VALUES (%s, %s, %s, %s, %s)
-    """, (request.form.get('alumno_id'), dia_nombre, request.form.get('hora'), 
-          fecha_final, request.form.get('observaciones')))
+    """, (request.form.get('alumno_id'), dia_nombre, request.form.get('hora'), fecha_final, request.form.get('observaciones')))
     conn.commit()
     conn.close()
     return redirect(url_for('agenda', fecha=request.form.get('fecha_inicio')))
 
-# --- RUTA DE FACTURACIÓN ---
+@app.route('/eliminar_turno/<int:id>')
+@login_required
+def eliminar_turno(id):
+    fecha_ref = request.args.get('fecha_ref')
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM turnos WHERE id = %s", (id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('agenda', fecha=fecha_ref))
+
+@app.route('/mover_turno', methods=['POST'])
+@login_required
+def mover_turno():
+    data = request.json
+    dias_map = {'Lunes':0, 'Martes':1, 'Miércoles':2, 'Jueves':3, 'Viernes':4, 'Sábado':5}
+    fecha_ref = datetime.strptime(data.get('fecha_inicio'), '%Y-%m-%d')
+    nueva_fecha = (fecha_ref + timedelta(days=dias_map[data.get('dia_semana')])).date()
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("UPDATE turnos SET dia_semana=%s, fecha=%s WHERE id=%s", 
+               (data.get('dia_semana'), nueva_fecha, data.get('id')))
+    conn.commit()
+    conn.close()
+    return jsonify(status="ok")
+
+# --- FACTURACIÓN ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
