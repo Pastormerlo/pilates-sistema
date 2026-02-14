@@ -29,7 +29,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- ACCESO ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -49,7 +48,6 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- ALUMNOS (13 CAMPOS) ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -118,42 +116,58 @@ def eliminar_alumno(id):
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- AGENDA ---
 @app.route('/agenda')
 @login_required
 def agenda():
     fecha_str = request.args.get('fecha')
     fecha_actual = datetime.strptime(fecha_str, '%Y-%m-%d') if fecha_str else datetime.now()
-    inicio_semana = fecha_actual - timedelta(days=fecha_actual.weekday())
+    
+    # Lunes de la semana actual
+    inicio_semana = (fecha_actual - timedelta(days=fecha_actual.weekday())).date()
     fin_semana = inicio_semana + timedelta(days=5)
+    
     horarios_fijos = [f"{h:02d}:00" for h in range(8, 22)]
     
     conn = conectar()
     cur = conn.cursor()
+    # FILTRO: Solo turnos de esta semana específica
     cur.execute("""
         SELECT t.*, a.nombre || ' ' || a.apellido as alumno_nombre 
-        FROM turnos t JOIN alumnos a ON t.alumno_id = a.id ORDER BY t.hora
-    """)
+        FROM turnos t JOIN alumnos a ON t.alumno_id = a.id 
+        WHERE t.fecha >= %s AND t.fecha <= %s
+        ORDER BY t.hora
+    """, (inicio_semana, fin_semana))
     turnos = cur.fetchall()
+    
     cur.execute("SELECT id, nombre, apellido FROM alumnos ORDER BY apellido ASC")
     alumnos = cur.fetchall()
     conn.close()
-    return render_template('agenda.html', turnos=turnos, alumnos=alumnos, inicio=inicio_semana, fin=fin_semana, horarios=horarios_fijos, timedelta=timedelta)
+    
+    return render_template('agenda.html', turnos=turnos, alumnos=alumnos, 
+                           inicio=inicio_semana, fin=fin_semana, 
+                           horarios=horarios_fijos, timedelta=timedelta)
 
 @app.route('/agregar_turno', methods=['POST'])
 @login_required
 def agregar_turno():
+    # El usuario elige Día (Lunes, etc) y nosotros calculamos la fecha exacta de ese día en la semana actual
+    dia_nombre = request.form.get('dia_semana')
+    fecha_referencia = datetime.strptime(request.form.get('fecha_inicio'), '%Y-%m-%d')
+    dias_map = {'Lunes':0, 'Martes':1, 'Miércoles':2, 'Jueves':3, 'Viernes':4, 'Sábado':5}
+    
+    fecha_final = fecha_referencia + timedelta(days=dias_map[dia_nombre])
+
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
-        INSERT INTO turnos (alumno_id, dia_semana, hora, clases_semanales, observaciones) 
-        VALUES (%s, %s, %s, %s, %s)
-    """, (request.form.get('alumno_id'), request.form.get('dia_semana'), request.form.get('hora'), request.form.get('clases_semanales'), request.form.get('observaciones')))
+        INSERT INTO turnos (alumno_id, dia_semana, hora, clases_semanales, observaciones, fecha) 
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (request.form.get('alumno_id'), dia_nombre, request.form.get('hora'), 
+          request.form.get('clases_semanales'), request.form.get('observaciones'), fecha_final))
     conn.commit()
     conn.close()
-    return redirect(url_for('agenda'))
+    return redirect(url_for('agenda', fecha=request.form.get('fecha_inicio')))
 
-# --- FACTURACIÓN ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
