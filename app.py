@@ -1,13 +1,19 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, send_file
+from flask import Flask, render_template, request, redirect, url_for, session
 from functools import wraps
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
+# Configuración de seguridad para sesiones en Render
 app.secret_key = 'mauro_pilates_2026'
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+)
 
-# Configuración de la base de datos desde la variable de entorno de Render
+# Configuración de la base de datos
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def conectar():
@@ -27,7 +33,9 @@ def login_required(f):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        # Usuario y contraseña por defecto
         if request.form.get('username') == 'admin' and request.form.get('password') == 'admin123':
+            session.clear() # Limpiamos sesión previa
             session['admin'] = True
             return redirect(url_for('index'))
     return render_template('login.html')
@@ -71,6 +79,7 @@ def agregar_alumno():
 def facturacion():
     conn = conectar()
     cur = conn.cursor()
+    # Traemos pagos uniendo con la tabla alumnos para tener el nombre
     cur.execute("""
         SELECT p.*, a.nombre as alumno_nombre 
         FROM pagos p 
