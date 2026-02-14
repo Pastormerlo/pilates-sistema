@@ -1,28 +1,40 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="row g-4">
+<div class="row g-4 mt-2">
     <div class="col-md-4">
-        <div class="card border-0 shadow-sm p-4 text-center">
-            <i class="fas fa-users fa-3x text-primary mb-3"></i>
-            <h4>Alumnos</h4>
-            <p class="text-muted">Gestiona fichas médicas y datos personales.</p>
-            <a href="/alumnos" class="btn btn-outline-primary w-100">Ver Alumnos</a>
+        <div class="card border-0 shadow-sm h-100 text-center p-4">
+            <div class="mb-3">
+                <span class="p-3 bg-primary bg-opacity-10 rounded-circle d-inline-block">
+                    <i class="fas fa-users fa-2x text-primary"></i>
+                </span>
+            </div>
+            <h5 class="fw-bold">Gestión de Alumnos</h5>
+            <p class="text-muted small">Fichas médicas, contacto y edición de datos.</p>
+            <a href="/alumnos" class="btn btn-primary w-100 mt-auto shadow-sm">Acceder</a>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card border-0 shadow-sm p-4 text-center">
-            <i class="fas fa-calendar-alt fa-3x text-success mb-3"></i>
-            <h4>Agenda</h4>
-            <p class="text-muted">Organiza turnos y horarios semanales.</p>
-            <a href="/agenda" class="btn btn-outline-success w-100">Ver Agenda</a>
+        <div class="card border-0 shadow-sm h-100 text-center p-4">
+            <div class="mb-3">
+                <span class="p-3 bg-success bg-opacity-10 rounded-circle d-inline-block">
+                    <i class="fas fa-calendar-check fa-2x text-success"></i>
+                </span>
+            </div>
+            <h5 class="fw-bold">Agenda Semanal</h5>
+            <p class="text-muted small">Organización de turnos por día y hora.</p>
+            <a href="/agenda" class="btn btn-success w-100 mt-auto shadow-sm">Ver Turnos</a>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card border-0 shadow-sm p-4 text-center">
-            <i class="fas fa-file-invoice-dollar fa-3x text-warning mb-3"></i>
-            <h4>Facturación</h4>
-            <p class="text-muted">Control de cobros y estados de cuenta.</p>
-            <a href="/facturacion" class="btn btn-outline-warning w-100">Ir a Pagos</a>
+        <div class="card border-0 shadow-sm h-100 text-center p-4">
+            <div class="mb-3">
+                <span class="p-3 bg-warning bg-opacity-10 rounded-circle d-inline-block">
+                    <i class="fas fa-wallet fa-2x text-warning"></i>
+                </span>
+            </div>
+            <h5 class="fw-bold">Caja y Pagos</h5>
+            <p class="text-muted small">Control de ingresos y facturación de clases.</p>
+            <a href="/facturacion" class="btn btn-warning text-white w-100 mt-auto shadow-sm">Ver Pagos</a>
         </div>
     </div>
 </div>
