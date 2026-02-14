@@ -1,9 +1,7 @@
 {% extends 'layout.html' %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="fw-bold"><i class="fas fa-users text-primary me-2"></i>Gestión de Alumnos</h2>
-    </div>
+    <h2 class="fw-bold"><i class="fas fa-users text-primary me-2"></i>Gestión de Alumnos</h2>
     <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAlumno">
         <i class="fas fa-user-plus me-2"></i>Nuevo Alumno
     </button>
@@ -17,8 +15,7 @@
                     <th>Alumno</th>
                     <th>DNI</th>
                     <th>Teléfono</th>
-                    <th>Obra Social</th>
-                    <th class="text-center">Ficha</th>
+                    <th class="text-center">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -27,33 +24,75 @@
                     <td><strong>{{ alumno.apellido }}, {{ alumno.nombre }}</strong></td>
                     <td>{{ alumno.dni or '-' }}</td>
                     <td>{{ alumno.telefono or '-' }}</td>
-                    <td>{{ alumno.obra_social or '-' }}</td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#ver{{ alumno.id }}">
-                            <i class="fas fa-eye"></i>
-                        </button>
+                        <div class="btn-group shadow-sm">
+                            <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#ver{{ alumno.id }}" title="Ver Ficha">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-warning text-white" data-bs-toggle="modal" data-bs-target="#edit{{ alumno.id }}" title="Editar Info">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <a href="{{ url_for('eliminar_alumno', id=alumno.id) }}" 
+                               class="btn btn-sm btn-danger" 
+                               onclick="return confirm('¿Eliminar a {{ alumno.nombre }} {{ alumno.apellido }}?')"
+                               title="Borrar">
+                                <i class="fas fa-trash-alt"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
 
-                <div class="modal fade" id="ver{{ alumno.id }}" tabindex="-1">
+                <div class="modal fade" id="edit{{ alumno.id }}" tabindex="-1">
                     <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
+                        <div class="modal-content border-0">
+                            <form action="{{ url_for('editar_alumno', id=alumno.id) }}" method="POST">
+                                <div class="modal-header bg-warning text-white">
+                                    <h5 class="modal-title">Editar Alumno: {{ alumno.nombre }}</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body p-4">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3"><label class="form-label">Nombre</label><input type="text" name="nombre" value="{{ alumno.nombre }}" class="form-control" required></div>
+                                        <div class="col-md-6 mb-3"><label class="form-label">Apellido</label><input type="text" name="apellido" value="{{ alumno.apellido }}" class="form-control" required></div>
+                                        <div class="col-md-4 mb-3"><label class="form-label">DNI</label><input type="text" name="dni" value="{{ alumno.dni }}" class="form-control"></div>
+                                        <div class="col-md-8 mb-3"><label class="form-label">Domicilio</label><input type="text" name="domicilio" value="{{ alumno.domicilio }}" class="form-control"></div>
+                                        <div class="col-md-6 mb-3"><label class="form-label">Teléfono</label><input type="text" name="telefono" value="{{ alumno.telefono }}" class="form-control"></div>
+                                        <div class="col-md-6 mb-3"><label class="form-label">Emergencia</label><input type="text" name="contacto_emergencia" value="{{ alumno.contacto_emergencia }}" class="form-control"></div>
+                                        <div class="col-md-4 mb-3"><label class="form-label">Fecha Nac.</label><input type="date" name="fecha_nacimiento" value="{{ alumno.fecha_nacimiento }}" class="form-control"></div>
+                                        <div class="col-md-4 mb-3"><label class="form-label">Peso</label><input type="number" step="0.1" name="peso" value="{{ alumno.peso }}" class="form-control"></div>
+                                        <div class="col-md-4 mb-3"><label class="form-label">Altura</label><input type="number" step="0.01" name="altura" value="{{ alumno.altura }}" class="form-control"></div>
+                                        <div class="col-md-6 mb-3"><label class="form-label">Obra Social</label><input type="text" name="obra_social" value="{{ alumno.obra_social }}" class="form-control"></div>
+                                        <div class="col-md-6 mb-3"><label class="form-label">Médico</label><input type="text" name="medico_cabecera" value="{{ alumno.medico_cabecera }}" class="form-control"></div>
+                                        <div class="col-12 mb-3"><label class="form-label">Patologías</label><textarea name="patologias_cirugias" class="form-control">{{ alumno.patologias_cirugias }}</textarea></div>
+                                        <div class="col-12 mb-3"><label class="form-label">Observaciones</label><textarea name="observaciones" class="form-control">{{ alumno.observaciones }}</textarea></div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-0">
+                                    <button type="submit" class="btn btn-warning text-white w-100">Guardar Cambios</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="ver{{ alumno.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg shadow">
+                        <div class="modal-content border-0">
                             <div class="modal-header bg-info text-white">
-                                <h5 class="modal-title">Ficha Médica: {{ alumno.nombre }} {{ alumno.apellido }}</h5>
+                                <h5 class="modal-title">Ficha Médica: {{ alumno.apellido }}</h5>
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
-                            <div class="modal-body">
+                            <div class="modal-body p-4">
                                 <div class="row">
                                     <div class="col-md-6">
+                                        <p><strong>DNI:</strong> {{ alumno.dni }}</p>
                                         <p><strong>Domicilio:</strong> {{ alumno.domicilio }}</p>
-                                        <p><strong>Fecha Nac:</strong> {{ alumno.fecha_nacimiento }}</p>
-                                        <p><strong>Emergencias:</strong> {{ alumno.contacto_emergencia }}</p>
                                         <p><strong>Médico:</strong> {{ alumno.medico_cabecera }}</p>
                                     </div>
                                     <div class="col-md-6">
-                                        <p><strong>Peso:</strong> {{ alumno.peso }} kg | <strong>Altura:</strong> {{ alumno.altura }} m</p>
-                                        <p><strong>Patologías/Cirugías:</strong> {{ alumno.patologias_cirugias }}</p>
-                                        <p><strong>Observaciones:</strong> {{ alumno.observaciones }}</p>
+                                        <p><strong>F. Nac:</strong> {{ alumno.fecha_nacimiento }}</p>
+                                        <p><strong>Peso/Alt:</strong> {{ alumno.peso }}kg / {{ alumno.altura }}m</p>
+                                        <p><strong>Patologías:</strong> {{ alumno.patologias_cirugias }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -66,36 +105,4 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalAlumno" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form action="/agregar_alumno" method="POST">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Nuevo Registro de Alumno</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="row">
-                        <div class="col-md-6 mb-3"><label class="form-label">Nombre</label><input type="text" name="nombre" class="form-control" required></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Apellido</label><input type="text" name="apellido" class="form-control" required></div>
-                        <div class="col-md-4 mb-3"><label class="form-label">DNI</label><input type="text" name="dni" class="form-control"></div>
-                        <div class="col-md-8 mb-3"><label class="form-label">Domicilio</label><input type="text" name="domicilio" class="form-control"></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Teléfono</label><input type="text" name="telefono" class="form-control"></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Contacto Emergencia</label><input type="text" name="contacto_emergencia" class="form-control"></div>
-                        <div class="col-md-4 mb-3"><label class="form-label">Fecha Nacimiento</label><input type="date" name="fecha_nacimiento" class="form-control"></div>
-                        <div class="col-md-4 mb-3"><label class="form-label">Peso (kg)</label><input type="number" step="0.1" name="peso" class="form-control"></div>
-                        <div class="col-md-4 mb-3"><label class="form-label">Altura (m)</label><input type="number" step="0.01" name="altura" class="form-control"></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Obra Social</label><input type="text" name="obra_social" class="form-control"></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Médico Cabecera</label><input type="text" name="medico_cabecera" class="form-control"></div>
-                        <div class="col-12 mb-3"><label class="form-label">Patologías / Cirugías</label><textarea name="patologias_cirugias" class="form-control" rows="2"></textarea></div>
-                        <div class="col-12 mb-3"><label class="form-label">Observaciones</label><textarea name="observaciones" class="form-control" rows="2"></textarea></div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary w-100">Guardar Alumno</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 {% endblock %}
