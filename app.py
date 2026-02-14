@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from functools import wraps
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = 'mauro_pilates_2026'
@@ -28,7 +29,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- RUTAS DE ACCESO ---
+# --- ACCESO ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -48,7 +49,7 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- RUTAS DE ALUMNOS (13 CAMPOS + EDITAR + ELIMINAR) ---
+# --- ALUMNOS (13 CAMPOS) ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -74,11 +75,9 @@ def agregar_alumno():
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
-        INSERT INTO alumnos (
-            nombre, apellido, dni, domicilio, telefono, contacto_emergencia, 
-            fecha_nacimiento, peso, altura, patologias_cirugias, 
-            obra_social, medico_cabecera, observaciones
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO alumnos (nombre, apellido, dni, domicilio, telefono, contacto_emergencia, 
+        fecha_nacimiento, peso, altura, patologias_cirugias, obra_social, medico_cabecera, observaciones)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, datos)
     conn.commit()
     conn.close()
@@ -100,8 +99,7 @@ def editar_alumno(id):
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
-        UPDATE alumnos SET 
-        nombre=%s, apellido=%s, dni=%s, domicilio=%s, telefono=%s, 
+        UPDATE alumnos SET nombre=%s, apellido=%s, dni=%s, domicilio=%s, telefono=%s, 
         contacto_emergencia=%s, fecha_nacimiento=%s, peso=%s, altura=%s, 
         patologias_cirugias=%s, obra_social=%s, medico_cabecera=%s, observaciones=%s
         WHERE id=%s
@@ -120,28 +118,27 @@ def eliminar_alumno(id):
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- NUEVAS RUTAS DE AGENDA ---
+# --- AGENDA ---
 @app.route('/agenda')
 @login_required
 def agenda():
+    fecha_str = request.args.get('fecha')
+    fecha_actual = datetime.strptime(fecha_str, '%Y-%m-%d') if fecha_str else datetime.now()
+    inicio_semana = fecha_actual - timedelta(days=fecha_actual.weekday())
+    fin_semana = inicio_semana + timedelta(days=5)
+    horarios_fijos = [f"{h:02d}:00" for h in range(8, 22)]
+    
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
         SELECT t.*, a.nombre || ' ' || a.apellido as alumno_nombre 
-        FROM turnos t 
-        JOIN alumnos a ON t.alumno_id = a.id 
-        ORDER BY 
-            CASE dia_semana 
-                WHEN 'Lunes' THEN 1 WHEN 'Martes' THEN 2 
-                WHEN 'Miércoles' THEN 3 WHEN 'Jueves' THEN 4 
-                WHEN 'Viernes' THEN 5 WHEN 'Sábado' THEN 6 
-            END, t.hora
+        FROM turnos t JOIN alumnos a ON t.alumno_id = a.id ORDER BY t.hora
     """)
     turnos = cur.fetchall()
     cur.execute("SELECT id, nombre, apellido FROM alumnos ORDER BY apellido ASC")
     alumnos = cur.fetchall()
     conn.close()
-    return render_template('agenda.html', turnos=turnos, alumnos=alumnos)
+    return render_template('agenda.html', turnos=turnos, alumnos=alumnos, inicio=inicio_semana, fin=fin_semana, horarios=horarios_fijos, timedelta=timedelta)
 
 @app.route('/agregar_turno', methods=['POST'])
 @login_required
@@ -151,25 +148,18 @@ def agregar_turno():
     cur.execute("""
         INSERT INTO turnos (alumno_id, dia_semana, hora, clases_semanales, observaciones) 
         VALUES (%s, %s, %s, %s, %s)
-    """, (request.form.get('alumno_id'), request.form.get('dia_semana'), 
-          request.form.get('hora'), request.form.get('clases_semanales'), 
-          request.form.get('observaciones')))
+    """, (request.form.get('alumno_id'), request.form.get('dia_semana'), request.form.get('hora'), request.form.get('clases_semanales'), request.form.get('observaciones')))
     conn.commit()
     conn.close()
     return redirect(url_for('agenda'))
 
-# --- RUTAS DE FACTURACIÓN ---
+# --- FACTURACIÓN ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("""
-        SELECT p.*, a.nombre || ' ' || COALESCE(a.apellido, '') as alumno_nombre 
-        FROM pagos p 
-        JOIN alumnos a ON p.alumno_id = a.id 
-        ORDER BY p.fecha DESC
-    """)
+    cur.execute("SELECT p.*, a.nombre || ' ' || COALESCE(a.apellido, '') as alumno_nombre FROM pagos p JOIN alumnos a ON p.alumno_id = a.id ORDER BY p.fecha DESC")
     pagos = cur.fetchall()
     cur.execute("SELECT id, nombre, apellido FROM alumnos ORDER BY apellido ASC")
     alumnos = cur.fetchall()
@@ -181,11 +171,8 @@ def facturacion():
 def registrar_pago():
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO pagos (alumno_id, monto, concepto, estado, fecha) 
-        VALUES (%s, %s, %s, %s, CURRENT_DATE)
-    """, (request.form.get('alumno_id'), request.form.get('monto'), 
-          request.form.get('concepto'), request.form.get('estado')))
+    cur.execute("INSERT INTO pagos (alumno_id, monto, concepto, estado, fecha) VALUES (%s, %s, %s, %s, CURRENT_DATE)", 
+               (request.form.get('alumno_id'), request.form.get('monto'), request.form.get('concepto'), request.form.get('estado')))
     conn.commit()
     conn.close()
     return redirect(url_for('facturacion'))
