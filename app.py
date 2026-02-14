@@ -28,6 +28,8 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# --- RUTAS DE ACCESO ---
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -47,6 +49,8 @@ def logout():
 def index():
     return render_template('index.html')
 
+# --- RUTAS DE ALUMNOS ---
+
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -60,7 +64,6 @@ def alumnos():
 @app.route('/agregar_alumno', methods=['POST'])
 @login_required
 def agregar_alumno():
-    # Capturamos todos los campos nuevos
     datos = (
         request.form.get('nombre'),
         request.form.get('apellido'),
@@ -89,6 +92,50 @@ def agregar_alumno():
     conn.commit()
     conn.close()
     return redirect(url_for('alumnos'))
+
+@app.route('/editar_alumno/<int:id>', methods=['POST'])
+@login_required
+def editar_alumno(id):
+    datos = (
+        request.form.get('nombre'),
+        request.form.get('apellido'),
+        request.form.get('dni'),
+        request.form.get('domicilio'),
+        request.form.get('telefono'),
+        request.form.get('contacto_emergencia'),
+        request.form.get('fecha_nacimiento') or None,
+        request.form.get('peso') or None,
+        request.form.get('altura') or None,
+        request.form.get('patologias_cirugias'),
+        request.form.get('obra_social'),
+        request.form.get('medico_cabecera'),
+        request.form.get('observaciones'),
+        id
+    )
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE alumnos SET 
+        nombre=%s, apellido=%s, dni=%s, domicilio=%s, telefono=%s, 
+        contacto_emergencia=%s, fecha_nacimiento=%s, peso=%s, altura=%s, 
+        patologias_cirugias=%s, obra_social=%s, medico_cabecera=%s, observaciones=%s
+        WHERE id=%s
+    """, datos)
+    conn.commit()
+    conn.close()
+    return redirect(url_for('alumnos'))
+
+@app.route('/eliminar_alumno/<int:id>')
+@login_required
+def eliminar_alumno(id):
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM alumnos WHERE id = %s", (id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('alumnos'))
+
+# --- RUTAS DE FACTURACIÓN ---
 
 @app.route('/facturacion')
 @login_required
@@ -120,18 +167,6 @@ def registrar_pago():
     conn.commit()
     conn.close()
     return redirect(url_for('facturacion'))
-
-@app.route('/eliminar_alumno/<int:id>')
-@login_required
-def eliminar_alumno(id):
-    conn = conectar()
-    cur = conn.cursor()
-    # Al eliminar al alumno, por la configuración que pusimos en la base de datos, 
-    # se borrarán también sus pagos automáticamente (ON DELETE CASCADE).
-    cur.execute("DELETE FROM alumnos WHERE id = %s", (id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('alumnos'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
