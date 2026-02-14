@@ -28,6 +28,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# --- RUTAS DE ACCESO ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -47,6 +48,7 @@ def logout():
 def index():
     return render_template('index.html')
 
+# --- RUTAS DE ALUMNOS (13 CAMPOS + EDITAR + ELIMINAR) ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -118,6 +120,45 @@ def eliminar_alumno(id):
     conn.close()
     return redirect(url_for('alumnos'))
 
+# --- NUEVAS RUTAS DE AGENDA ---
+@app.route('/agenda')
+@login_required
+def agenda():
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT t.*, a.nombre || ' ' || a.apellido as alumno_nombre 
+        FROM turnos t 
+        JOIN alumnos a ON t.alumno_id = a.id 
+        ORDER BY 
+            CASE dia_semana 
+                WHEN 'Lunes' THEN 1 WHEN 'Martes' THEN 2 
+                WHEN 'Miércoles' THEN 3 WHEN 'Jueves' THEN 4 
+                WHEN 'Viernes' THEN 5 WHEN 'Sábado' THEN 6 
+            END, t.hora
+    """)
+    turnos = cur.fetchall()
+    cur.execute("SELECT id, nombre, apellido FROM alumnos ORDER BY apellido ASC")
+    alumnos = cur.fetchall()
+    conn.close()
+    return render_template('agenda.html', turnos=turnos, alumnos=alumnos)
+
+@app.route('/agregar_turno', methods=['POST'])
+@login_required
+def agregar_turno():
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO turnos (alumno_id, dia_semana, hora, clases_semanales, observaciones) 
+        VALUES (%s, %s, %s, %s, %s)
+    """, (request.form.get('alumno_id'), request.form.get('dia_semana'), 
+          request.form.get('hora'), request.form.get('clases_semanales'), 
+          request.form.get('observaciones')))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('agenda'))
+
+# --- RUTAS DE FACTURACIÓN ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
