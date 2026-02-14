@@ -2,42 +2,37 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-white rounded shadow-sm">
     <div>
-        <h2 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-alt text-primary me-2"></i>Agenda</h2>
-        <small class="text-muted fw-bold">{{ inicio.strftime('%d/%m/%Y') }} — {{ fin.strftime('%d/%m/%Y') }}</small>
+        <h4 class="fw-bold mb-0 text-dark">Agenda de Clases</h4>
+        <small class="text-primary fw-bold">{{ inicio.strftime('%d/%m') }} al {{ fin.strftime('%d/%m') }}</small>
     </div>
-    <div class="d-flex align-items-center gap-2">
-        <div class="btn-group shadow-sm">
-            <a href="/agenda?fecha={{ (inicio - timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light border"><i class="fas fa-chevron-left"></i></a>
-            <a href="/agenda" class="btn btn-light border">Hoy</a>
-            <a href="/agenda?fecha={{ (inicio + timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light border"><i class="fas fa-chevron-right"></i></a>
+    <div class="d-flex gap-2">
+        <div class="btn-group">
+            <a href="/agenda?fecha={{ (inicio - timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-chevron-left"></i></a>
+            <a href="/agenda" class="btn btn-sm btn-outline-secondary">Hoy</a>
+            <a href="/agenda?fecha={{ (inicio + timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-chevron-right"></i></a>
         </div>
-        <button class="btn btn-primary px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTurno">
-            <i class="fas fa-plus me-2"></i>Agendar
-        </button>
+        <button class="btn btn-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalTurno">+ Agendar</button>
     </div>
 </div>
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
+<div class="row row-cols-1 row-cols-lg-3 g-3">
     {% set dias_nombres = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}
     {% for dia in dias_nombres %}
     <div class="col">
-        <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
-            <div class="card-header bg-dark text-white text-center py-3 fw-bold border-0">{{ dia }}</div>
-            <div class="card-body p-0 bg-light">
-                <div class="list-group list-group-flush">
-                    {% set turnos_dia = turnos | selectattr('dia_semana', 'equalto', dia) | list %}
-                    {% if turnos_dia %}
-                        {% for t in turnos_dia %}
-                        <div class="list-group-item border-start border-4 border-primary m-2 shadow-sm rounded bg-white p-3">
-                            <span class="badge bg-primary bg-opacity-10 text-primary mb-1">{{ t.hora.strftime('%H:%M') }} hs</span><br>
-                            <strong class="text-dark">{{ t.alumno_nombre }}</strong>
-                            <small class="text-muted d-block">{{ t.clases_semanales }} clases/semanales</small>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center py-5 text-muted small opacity-50">No hay turnos para este día</div>
-                    {% endif %}
-                </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-dark text-white py-2 text-center small fw-bold">{{ dia }}</div>
+            <div class="card-body p-2 bg-light" style="min-height: 200px;">
+                {% set turnos_dia = turnos | selectattr('dia_semana', 'equalto', dia) | list %}
+                {% if turnos_dia %}
+                    {% for t in turnos_dia %}
+                    <div class="bg-white border-bottom p-2 mb-1 rounded shadow-sm d-flex justify-content-between align-items-center">
+                        <span class="small"><strong>{{ t.nombre }} {{ t.apellido }}</strong></span>
+                        <span class="text-primary fw-bold small">{{ t.hora.strftime('%H:%M') }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4 text-muted small opacity-50">Sin clases</div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -49,36 +44,38 @@
         <div class="modal-content border-0">
             <form action="/agregar_turno" method="POST">
                 <input type="hidden" name="fecha_inicio" value="{{ inicio.strftime('%Y-%m-%d') }}">
-                
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Nueva Clase en esta Semana</h5>
+                    <h5 class="modal-title">Agendar nueva clase</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label">Alumno</label>
+                        <label class="form-label small fw-bold">Alumno</label>
                         <select name="alumno_id" class="form-select" required>
                             {% for a in alumnos %}<option value="{{ a.id }}">{{ a.apellido }}, {{ a.nombre }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="row">
                         <div class="col-6 mb-3">
-                            <label class="form-label">Día</label>
+                            <label class="form-label small fw-bold">Día</label>
                             <select name="dia_semana" class="form-select">
                                 {% for d in dias_nombres %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
                             </select>
                         </div>
                         <div class="col-6 mb-3">
-                            <label class="form-label">Horario</label>
+                            <label class="form-label small fw-bold">Horario</label>
                             <select name="hora" class="form-select">
                                 {% for h in horarios %}<option value="{{ h }}">{{ h }} hs</option>{% endfor %}
                             </select>
                         </div>
                     </div>
-                    <div class="mb-3"><label class="form-label">Clases semanales</label><input type="number" name="clases_semanales" class="form-control" value="2"></div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Observaciones (Opcional)</label>
+                        <input type="text" name="observaciones" class="form-control" placeholder="Ej: Trae certificado">
+                    </div>
                 </div>
                 <div class="modal-footer border-0">
-                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold">GUARDAR TURNO</button>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">GUARDAR CLASE</button>
                 </div>
             </form>
         </div>
