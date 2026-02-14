@@ -1,57 +1,28 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col">
-            <h2 class="display-5 fw-bold text-dark">Panel Principal</h2>
-            <p class="text-muted">Bienvenido al sistema de gestión, Mauro.</p>
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <i class="fas fa-users fa-3x text-primary mb-3"></i>
+            <h4>Alumnos</h4>
+            <p class="text-muted">Gestiona fichas médicas y datos personales.</p>
+            <a href="/alumnos" class="btn btn-outline-primary w-100">Ver Alumnos</a>
         </div>
     </div>
-
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card bg-primary text-white p-4 h-100">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5>Alumnos</h5>
-                        <p class="mb-0">Gestioná tu base de datos</p>
-                    </div>
-                    <i class="fas fa-users fa-3x opacity-50"></i>
-                </div>
-                <a href="/alumnos" class="btn btn-light btn-sm mt-3 w-50">Ver Alumnos</a>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card bg-success text-white p-4 h-100">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5>Facturación</h5>
-                        <p class="mb-0">Control de cobros y pagos</p>
-                    </div>
-                    <i class="fas fa-dollar-sign fa-3x opacity-50"></i>
-                </div>
-                <a href="/facturacion" class="btn btn-light btn-sm mt-3 w-50">Ir a Pagos</a>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card bg-info text-white p-4 h-100">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5>Agenda</h5>
-                        <p class="mb-0">Próximos turnos</p>
-                    </div>
-                    <i class="fas fa-calendar-alt fa-3x opacity-50"></i>
-                </div>
-                <a href="#" class="btn btn-light btn-sm mt-3 w-50 disabled">Próximamente</a>
-            </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <i class="fas fa-calendar-alt fa-3x text-success mb-3"></i>
+            <h4>Agenda</h4>
+            <p class="text-muted">Organiza turnos y horarios semanales.</p>
+            <a href="/agenda" class="btn btn-outline-success w-100">Ver Agenda</a>
         </div>
     </div>
-
-    <div class="row mt-5">
-        <div class="col-12 text-center">
-            <img src="https://cdn-icons-png.flaticon.com/512/3843/3843031.png" alt="Pilates" style="width: 150px; opacity: 0.2;">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <i class="fas fa-file-invoice-dollar fa-3x text-warning mb-3"></i>
+            <h4>Facturación</h4>
+            <p class="text-muted">Control de cobros y estados de cuenta.</p>
+            <a href="/facturacion" class="btn btn-outline-warning w-100">Ir a Pagos</a>
         </div>
     </div>
 </div>
