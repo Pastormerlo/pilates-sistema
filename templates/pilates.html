@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pilates Manager - Mauro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; padding-bottom: 100px; }
+        @media (min-width: 769px) { .vista-celular { display: none; } .celda-hora { min-width: 140px; min-height: 100px; background: #fff; border: 1px solid #dee2e6; padding: 5px; } }
+        @media (max-width: 768px) { 
+            .vista-pc { display: none; } 
+            .contenedor-dia-movil { background: white; margin-bottom: 15px; border-radius: 12px; border: 1px solid #ddd; overflow: hidden; } 
+            .titulo-dia-movil { background: #212529; color: white; padding: 12px; font-weight: bold; text-align: center; } 
+            .fila-hora-movil { display: flex; border-bottom: 1px solid #f0f0f0; align-items: center; padding: 10px; } 
+            .hora-label-movil { width: 70px; font-weight: bold; color: #444; } 
+            .btn-flotante { position: fixed; bottom: 30px; right: 20px; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); z-index: 2000; font-size: 30px; border: 2px solid white; } 
+        }
+        .badge-alumno { display: block; padding: 10px; font-size: 0.85rem; border-left: 5px solid; border-radius: 6px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; margin-bottom: 5px; color: inherit; text-decoration: none; cursor: grab; }
+        .pagado { border-left-color: #198754; color: #198754; }
+        .debe { border-left-color: #dc3545; color: #dc3545; }
+        .btn-del { position: absolute; right: 8px; top: 2px; color: #bbb; font-size: 1.3rem; text-decoration: none; }
+        .label-ficha { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; display: block; margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark mb-3 shadow sticky-top">
+    <div class="container-fluid">
+        <span class="navbar-brand fw-bold">PILATES MANAGER</span>
+        <div>
+            <a href="/facturacion" class="btn btn-warning btn-sm fw-bold me-1"><i class="bi bi-cash-stack"></i></a>
+            <a href="/logout" class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right"></i></a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid px-2">
+    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 rounded shadow-sm border">
+        <div class="d-flex gap-1">
+            <a href="/?fecha={{ant}}" class="btn btn-outline-dark btn-sm"><i class="bi bi-chevron-left"></i></a>
+            <span class="btn btn-light btn-sm fw-bold text-uppercase" style="font-size: 0.7rem; min-width: 100px;">{{actual}}</span>
+            <a href="/?fecha={{sig}}" class="btn btn-outline-dark btn-sm"><i class="bi bi-chevron-right"></i></a>
+        </div>
+        <button class="btn btn-success btn-sm fw-bold vista-celular" data-bs-toggle="modal" data-bs-target="#modalAlumno" onclick="limpiarForm()">
+            <i class="bi bi-person-plus-fill"></i> NUEVO
+        </button>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-md-3">
+            <button class="btn btn-success w-100 fw-bold shadow-sm mb-2 vista-pc" data-bs-toggle="modal" data-bs-target="#modalAlumno" onclick="limpiarForm()">+ NUEVO ALUMNO</button>
+            <button class="btn btn-success btn-flotante vista-celular" data-bs-toggle="modal" data-bs-target="#modalAlumno" onclick="limpiarForm()">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            
+            <div class="card p-3 shadow-sm border-0 mb-2">
+                <button class="btn btn-primary btn-sm w-100 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAgenda">AGENDAR TURNO <i class="bi bi-plus-circle"></i></button>
+                <div class="collapse" id="collapseAgenda">
+                    <form action="/asignar-turno" method="POST" class="mt-3">
+                        <select name="alumno_id" class="form-select form-select-sm mb-2" required>
+                            <option value="" disabled selected>Alumno...</option>
+                            {% for a in alumnos %}<option value="{{a.id}}">{{a.nombre}}</option>{% endfor %}
+                        </select>
+                        <select name="fecha" id="selectFechaAsignar" class="form-select form-select-sm mb-2" required></select>
+                        <select name="hora" class="form-select form-select-sm mb-2">
+                            {% for h in horas %}<option value="{{h}}">{{h}}:00 hs</option>{% endfor %}
+                        </select>
+                        <button class="btn btn-primary btn-sm w-100 fw-bold">ASIGNAR</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="vista-pc">
+                <button class="btn btn-dark btn-sm w-100 mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseListaAlumnos">
+                    <i class="bi bi-people-fill"></i> VER/OCULTAR ALUMNOS
+                </button>
+                <div class="collapse show card p-3 shadow-sm border-0" id="collapseListaAlumnos">
+                    <input type="text" id="bus" class="form-control form-control-sm mb-2" placeholder="Buscar..." onkeyup="filtrar()">
+                    <div id="listaAlumnos" class="overflow-auto" style="max-height: 400px;">
+                        {% for a in alumnos %}
+                        <div class="border-bottom py-1 small d-flex justify-content-between align-items-center">
+                            <span>{{a.nombre}}</span>
+                            <button class="btn btn-link btn-sm p-0" onclick='abrirFicha({{ a|tojson }})'><i class="bi bi-pencil-square"></i></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9 vista-pc">
+            <div class="table-responsive shadow-sm rounded border bg-white">
+                <table class="table table-bordered mb-0 text-center">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width:80px">HORA</th>
+                            {% for d in cabecera %}<th class="col-fecha" data-db="{{d.db}}" data-visual="{{d.visual}}">{{d.nombre}}<br><small>{{d.visual[:5]}}</small></th>{% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in horas %}
+                        <tr>
+                            <td class="bg-dark text-white align-middle fw-bold small">{{h}}:00</td>
+                            {% for d in cabecera %}
+                            <td class="celda-hora" data-fecha="{{d.db}}" data-hora="{{h}}" ondragover="event.preventDefault()" ondrop="drop(event)">
+                                {% for item in grilla[h][d.db] %}
+                                <div class="badge-alumno {{'pagado' if item.pago_al_dia else 'debe'}}" id="t-{{item.id}}" draggable="true" ondragstart="event.dataTransfer.setData('tid', event.target.id.replace('t-',''))">
+                                    <a href="/quitar-turno/{{item.id}}" class="btn-del">×</a>
+                                    {{item.nombre}}
+                                </div>
+                                {% endfor %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col-12 vista-celular">
+            {% for d in cabecera %}
+            <div class="contenedor-dia-movil">
+                <div class="titulo-dia-movil">{{d.nombre}} {{d.visual[:5]}}</div>
+                {% for h in horas %}
+                <div class="fila-hora-movil">
+                    <div class="hora-label-movil small">{{h}}:00</div>
+                    <div class="turnos-movil w-100">
+                        {% for item in grilla[h][d.db] %}
+                        <div class="badge-alumno {{'pagado' if item.pago_al_dia else 'debe'}}" onclick="if(confirm('¿Eliminar turno de {{item.nombre}}?')) window.location.href='/quitar-turno/{{item.id}}'">
+                            {{item.nombre}}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAlumno" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form action="/guardar-alumno" method="POST">
+        <div class="modal-header bg-dark text-white"><h5>Ficha Médica Alumno</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body bg-light">
+            <input type="hidden" name="id" id="f_id">
+            <div class="row g-3">
+                <div class="col-md-8"><label class="label-ficha">Nombre Completo</label><input type="text" name="nombre" id="f_nombre" class="form-control" required></div>
+                <div class="col-md-4"><label class="label-ficha">DNI</label><input type="text" name="dni" id="f_dni" class="form-control"></div>
+                <div class="col-md-4"><label class="label-ficha">Teléfono</label><input type="text" name="tel" id="f_tel" class="form-control"></div>
+                <div class="col-md-4"><label class="label-ficha">Fecha Nacimiento</label><input type="date" name="fecha_nac" id="f_nac" class="form-control"></div>
+                <div class="col-md-4"><label class="label-ficha">Edad</label><input type="number" name="edad" id="f_edad" class="form-control"></div>
+                <div class="col-md-12"><label class="label-ficha">Domicilio</label><input type="text" name="domicilio" id="f_dom" class="form-control"></div>
+                <div class="col-md-6"><label class="label-ficha">Contacto Emergencia</label><input type="text" name="emergencia" id="f_eme" class="form-control"></div>
+                <div class="col-md-3"><label class="label-ficha">Peso</label><input type="text" name="peso" id="f_peso" class="form-control"></div>
+                <div class="col-md-3"><label class="label-ficha">Obra Social</label><input type="text" name="obra_social" id="f_obra" class="form-control"></div>
+                <div class="col-12"><label class="label-ficha">Patologías / Cirugías</label><textarea name="patologias" id="f_pat" class="form-control" rows="3"></textarea></div>
+                <div class="col-12"><label class="label-ficha">Médico de Cabecera</label><input type="text" name="medico" id="f_med" class="form-control"></div>
+            </div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary w-100 fw-bold">GUARDAR FICHA</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const select = document.getElementById('selectFechaAsignar');
+        document.querySelectorAll('.col-fecha').forEach(th => {
+            let opt = document.createElement("option"); opt.value = th.dataset.db; opt.text = th.dataset.visual; select.add(opt);
+        });
+    });
+    function drop(ev) {
+        ev.preventDefault(); const tid = ev.dataTransfer.getData("tid");
+        fetch('/mover-turno', { method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: tid, fecha: ev.currentTarget.dataset.fecha, hora: ev.currentTarget.dataset.hora})
+        }).then(() => location.reload());
+    }
+    function abrirFicha(a) {
+        document.getElementById('f_id').value = a.id;
+        document.getElementById('f_nombre').value = a.nombre;
+        document.getElementById('f_dni').value = a.dni;
+        document.getElementById('f_tel').value = a.telefono;
+        document.getElementById('f_nac').value = a.fecha_nacimiento;
+        document.getElementById('f_edad').value = a.edad;
+        document.getElementById('f_dom').value = a.domicilio;
+        document.getElementById('f_eme').value = a.contacto_emergencia;
+        document.getElementById('f_peso').value = a.peso;
+        document.getElementById('f_pat').value = a.patologias_cirugias;
+        document.getElementById('f_med').value = a.medico_cabecera;
+        document.getElementById('f_obra').value = a.obra_social;
+        new bootstrap.Modal(document.getElementById('modalAlumno')).show();
+    }
+    function filtrar() {
+        let b = document.getElementById('bus').value.toLowerCase();
+        document.querySelectorAll('#listaAlumnos div.small').forEach(i => {
+            i.style.display = i.innerText.toLowerCase().includes(b) ? "flex" : "none";
+        });
+    }
+    function limpiarForm() { document.querySelector('#modalAlumno form').reset(); document.getElementById('f_id').value = ""; }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facturación - Pilates</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f8f9fa; padding-bottom: 60px; }
+        .card-stats { border: 2px solid transparent; border-radius: 12px; cursor: pointer; transition: 0.2s; }
+        .card-stats.active { border-color: #000; transform: scale(1.02); }
+        .btn-modalidad { font-size: 0.7rem; font-weight: bold; padding: 2px 8px; border-radius: 20px; text-decoration: none; }
+        @media (max-width: 768px) {
+            .tabla-pc { display: none; }
+            .card-alumno-movil { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; border-left: 6px solid #212529; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+            .card-alumno-movil.pagado { border-left-color: #198754; }
+            .card-alumno-movil.debe { border-left-color: #dc3545; }
+        }
+        @media (min-width: 769px) { .vista-movil { display: none; } }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark mb-3 shadow">
+    <div class="container-fluid"><a class="navbar-brand fw-bold" href="/"><i class="bi bi-arrow-left"></i> VOLVER</a></div>
+</nav>
+
+<div class="container px-2">
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <div class="card p-2 shadow-sm border-0">
+                <form action="/actualizar-precios" method="POST" class="row g-1">
+                    <div class="col-6">
+                        <small class="text-muted" style="font-size:0.6rem">VALOR MES</small>
+                        <input type="text" name="valor_mes" class="form-control form-control-sm" value="{{valor_mes}}">
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted" style="font-size:0.6rem">VALOR CLASE</small>
+                        <input type="text" name="valor_clase" class="form-control form-control-sm" value="{{valor_clase}}">
+                    </div>
+                    <div class="col-12 mt-1">
+                        <button class="btn btn-dark btn-sm w-100 py-0" style="font-size:0.7rem">ACTUALIZAR PRECIOS</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <form action="/facturacion" method="GET" class="h-100 d-flex flex-column justify-content-center">
+                <select name="mes" class="form-select form-select-sm" onchange="this.form.submit()">
+                    {% for m in range(1, 13) %}<option value="{{m}}" {{'selected' if m==mes_sel}}>{{meses_nombres[m-1]}}</option>{% endfor %}
+                </select>
+                <input type="hidden" name="anio" value="{{anio_sel}}">
+            </form>
+        </div>
+        <div class="col-6 col-md-4 text-end d-flex align-items-center">
+             <button class="btn btn-danger btn-sm w-100 fw-bold shadow-sm" onclick="window.print()"><i class="bi bi-printer"></i> IMPRIMIR</button>
+        </div>
+    </div>
+
+    {% set total_monto = namespace(v=0) %}{% set count_pago = namespace(ok=0, debe=0) %}
+    {% for a in alumnos %}
+        {% set monto = 0 %}{% if a.clases_totales > 0 %}{% set monto = valor_mes|int if a.modalidad_pago == 0 else (a.clases_totales * valor_clase|int) %}{% endif %}
+        {% set total_monto.v = total_monto.v + monto %}
+        {% if a.pago_al_dia %}{% set count_pago.ok = count_pago.ok + 1 %}{% else %}{% set count_pago.debe = count_pago.debe + 1 %}{% endif %}
+    {% endfor %}
+
+    <div class="row g-2 mb-3 text-center no-print">
+        <div class="col-3"><div class="card card-stats bg-white shadow-sm p-2" id="f-todos" onclick="filtrarEstado('todos')"><small style="font-size:0.6rem">TODOS</small><br><b>{{ alumnos|length }}</b></div></div>
+        <div class="col-3"><div class="card card-stats bg-success text-white shadow-sm p-2" id="f-pagado" onclick="filtrarEstado('pagado')"><small style="font-size:0.6rem">PAGARON</small><br><b>{{ count_pago.ok }}</b></div></div>
+        <div class="col-3"><div class="card card-stats bg-danger text-white shadow-sm p-2" id="f-debe" onclick="filtrarEstado('debe')"><small style="font-size:0.6rem">DEBEN</small><br><b>{{ count_pago.debe }}</b></div></div>
+        <div class="col-3"><div class="card card-stats bg-dark text-white shadow-sm p-2" id="f-ninguno" onclick="filtrarEstado('ninguno')"><small style="font-size:0.6rem">OCULTAR</small><br><i class="bi bi-eye-slash"></i></div></div>
+    </div>
+
+    <input type="text" id="busFact" class="form-control mb-3 shadow-sm no-print" placeholder="Buscar alumno..." onkeyup="filtrarFact()">
+
+    <div id="listaPrincipalFact">
+        <div class="card shadow border-0 tabla-pc mb-4">
+            <table class="table table-hover align-middle mb-0 text-center">
+                <thead class="table-dark"><tr><th>Alumno</th><th>Modalidad</th><th>Clases</th><th>Monto</th><th>Estado</th></tr></thead>
+                <tbody>
+                    {% for a in alumnos %}
+                        {% set m_local = 0 %}{% if a.clases_totales > 0 %}{% set m_local = valor_mes|int if a.modalidad_pago == 0 else (a.clases_totales * valor_clase|int) %}{% endif %}
+                    <tr class="item-alumno" data-nombre="{{a.nombre|lower}}" data-estado="{{'pagado' if a.pago_al_dia else 'debe'}}">
+                        <td class="text-start ps-3"><strong>{{a.nombre}}</strong></td>
+                        <td>
+                            <a href="/cambiar-modalidad/{{a.id}}/{{a.modalidad_pago}}" class="btn-modalidad {{'btn btn-outline-success' if a.modalidad_pago==0 else 'btn btn-outline-primary'}}">
+                                {{'ABONO MES' if a.modalidad_pago==0 else 'SUELTAS'}}
+                            </a>
+                        </td>
+                        <td>{{a.clases_totales}}</td>
+                        <td class="fw-bold">${{ "{:,.0f}".format(m_local).replace(",", ".") }}</td>
+                        <td><a href="/cambiar-pago/{{a.id}}/{{a.pago_al_dia}}" class="badge {{'bg-success' if a.pago_al_dia else 'bg-danger'}} text-decoration-none">{{'PAGADO' if a.pago_al_dia else 'DEBE'}}</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="vista-movil">
+            {% for a in alumnos %}
+                {% set m_local = 0 %}{% if a.clases_totales > 0 %}{% set m_local = valor_mes|int if a.modalidad_pago == 0 else (a.clases_totales * valor_clase|int) %}{% endif %}
+                <div class="card-alumno-movil item-alumno {{'pagado' if a.pago_al_dia else 'debe'}}" data-nombre="{{a.nombre|lower}}" data-estado="{{'pagado' if a.pago_al_dia else 'debe'}}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <b>{{a.nombre}}</b>
+                        <a href="/cambiar-modalidad/{{a.id}}/{{a.modalidad_pago}}" class="btn-modalidad border {{'text-success border-success' if a.modalidad_pago==0 else 'text-primary border-primary'}}">
+                            {{'ABONO' if a.modalidad_pago==0 else 'SUELTAS'}}
+                        </a>
+                    </div>
+                    <div class="d-flex justify-content-between mt-3 align-items-center">
+                        <div>
+                            <small class="text-muted d-block" style="font-size:0.6rem">MONTO ({{a.clases_totales}} CL)</small>
+                            <span class="fw-bold fs-4">${{ "{:,.0f}".format(m_local).replace(",", ".") }}</span>
+                        </div>
+                        <a href="/cambiar-pago/{{a.id}}/{{a.pago_al_dia}}" class="btn {{'btn-success' if a.pago_al_dia else 'btn-danger'}} btn-sm fw-bold">
+                            {{'PAGADO' if a.pago_al_dia else 'DEBE'}}
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="alert alert-dark text-center py-3 shadow-sm mt-3">
+        <small class="text-uppercase fw-bold">Recaudación Estimada</small><br>
+        <span class="fs-2 fw-bold">${{ "{:,.0f}".format(total_monto.v).replace(",", ".") }}</span>
+    </div>
+</div>
+
+<script>
+    function filtrarFact() {
+        let bus = document.getElementById('busFact').value.toLowerCase();
+        let items = document.querySelectorAll('.item-alumno');
+        document.getElementById('listaPrincipalFact').style.display = "block";
+        items.forEach(i => { i.style.display = i.getAttribute('data-nombre').includes(bus) ? "" : "none"; });
+    }
+    function filtrarEstado(estado) {
+        document.querySelectorAll('.card-stats').forEach(c => c.classList.remove('active'));
+        document.getElementById('f-' + estado).classList.add('active');
+        let contenedor = document.getElementById('listaPrincipalFact');
+        let items = document.querySelectorAll('.item-alumno');
+        if (estado === 'ninguno') { contenedor.style.display = "none"; }
+        else {
+            contenedor.style.display = "block";
+            items.forEach(i => {
+                if (estado === 'todos') i.style.display = "";
+                else i.style.display = (i.getAttribute('data-estado') === estado) ? "" : "none";
+            });
+        }
+    }
+    filtrarEstado('todos');
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
