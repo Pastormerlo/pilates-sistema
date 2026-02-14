@@ -121,6 +121,18 @@ def registrar_pago():
     conn.close()
     return redirect(url_for('facturacion'))
 
+@app.route('/eliminar_alumno/<int:id>')
+@login_required
+def eliminar_alumno(id):
+    conn = conectar()
+    cur = conn.cursor()
+    # Al eliminar al alumno, por la configuración que pusimos en la base de datos, 
+    # se borrarán también sus pagos automáticamente (ON DELETE CASCADE).
+    cur.execute("DELETE FROM alumnos WHERE id = %s", (id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('alumnos'))
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
