@@ -29,6 +29,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# --- RUTAS DE ACCESO, ALUMNOS Y AGENDA SE MANTIENEN IGUAL ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -48,7 +49,6 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- ALUMNOS (13 campos intactos) ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -82,7 +82,6 @@ def agregar_alumno():
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- AGENDA (Mantiene Drag & Drop y vista compacta) ---
 @app.route('/agenda')
 @login_required
 def agenda():
@@ -144,16 +143,14 @@ def mover_turno():
     conn.close()
     return jsonify(status="ok")
 
-# --- FACTURACIÓN (Nueva lógica de listado de alumnos) ---
+# --- FACTURACIÓN (Actualizada con Mes y Borrado) ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
     conn = conectar()
     cur = conn.cursor()
-    # Listado de alumnos para cobrar
     cur.execute("SELECT id, nombre, apellido, dni FROM alumnos ORDER BY apellido ASC")
     alumnos_cobro = cur.fetchall()
-    # Historial de pagos
     cur.execute("""
         SELECT p.*, a.nombre || ' ' || a.apellido as alumno_nombre 
         FROM pagos p JOIN alumnos a ON p.alumno_id = a.id 
@@ -166,12 +163,25 @@ def facturacion():
 @app.route('/registrar_pago', methods=['POST'])
 @login_required
 def registrar_pago():
+    # Concatenamos Concepto + Mes para el campo concepto en DB o podrías usar campos separados.
+    # Para no complicar la DB actual, guardaremos "Cuota Mensual (Febrero)" en concepto.
+    concepto_final = f"{request.form.get('concepto')} - {request.form.get('mes')}"
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO pagos (alumno_id, monto, concepto, estado, fecha) 
         VALUES (%s, %s, %s, 'Pagado', CURRENT_DATE)
-    """, (request.form.get('alumno_id'), request.form.get('monto'), request.form.get('concepto')))
+    """, (request.form.get('alumno_id'), request.form.get('monto'), concepto_final))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('facturacion'))
+
+@app.route('/eliminar_pago/<int:id>')
+@login_required
+def eliminar_pago(id):
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM pagos WHERE id = %s", (id,))
     conn.commit()
     conn.close()
     return redirect(url_for('facturacion'))
