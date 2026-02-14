@@ -48,7 +48,7 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- ALUMNOS (Mantiene los 13 campos) ---
+# --- ALUMNOS (13 campos intactos) ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -82,41 +82,7 @@ def agregar_alumno():
     conn.close()
     return redirect(url_for('alumnos'))
 
-@app.route('/editar_alumno/<int:id>', methods=['POST'])
-@login_required
-def editar_alumno(id):
-    datos = (
-        request.form.get('nombre'), request.form.get('apellido'),
-        request.form.get('dni'), request.form.get('domicilio'),
-        request.form.get('telefono'), request.form.get('contacto_emergencia'),
-        request.form.get('fecha_nacimiento') or None,
-        request.form.get('peso') or None, request.form.get('altura') or None,
-        request.form.get('patologias_cirugias'), request.form.get('obra_social'),
-        request.form.get('medico_cabecera'), request.form.get('observaciones'), id
-    )
-    conn = conectar()
-    cur = conn.cursor()
-    cur.execute("""
-        UPDATE alumnos SET nombre=%s, apellido=%s, dni=%s, domicilio=%s, telefono=%s, 
-        contacto_emergencia=%s, fecha_nacimiento=%s, peso=%s, altura=%s, 
-        patologias_cirugias=%s, obra_social=%s, medico_cabecera=%s, observaciones=%s
-        WHERE id=%s
-    """, datos)
-    conn.commit()
-    conn.close()
-    return redirect(url_for('alumnos'))
-
-@app.route('/eliminar_alumno/<int:id>')
-@login_required
-def eliminar_alumno(id):
-    conn = conectar()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM alumnos WHERE id = %s", (id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('alumnos'))
-
-# --- AGENDA (Nuevas funciones Eliminar y Mover) ---
+# --- AGENDA (Mantiene Drag & Drop y vista compacta) ---
 @app.route('/agenda')
 @login_required
 def agenda():
@@ -125,22 +91,18 @@ def agenda():
     inicio_semana = (fecha_actual - timedelta(days=fecha_actual.weekday())).date()
     fin_semana = inicio_semana + timedelta(days=5)
     horarios_fijos = [f"{h:02d}:00" for h in range(8, 22)]
-    
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
-        SELECT t.*, a.nombre, a.apellido 
-        FROM turnos t JOIN alumnos a ON t.alumno_id = a.id 
-        WHERE t.fecha >= %s AND t.fecha <= %s
-        ORDER BY t.hora ASC
+        SELECT t.*, a.nombre, a.apellido FROM turnos t 
+        JOIN alumnos a ON t.alumno_id = a.id 
+        WHERE t.fecha >= %s AND t.fecha <= %s ORDER BY t.hora ASC
     """, (inicio_semana, fin_semana))
     turnos = cur.fetchall()
     cur.execute("SELECT id, nombre, apellido FROM alumnos ORDER BY apellido ASC")
-    alumnos = cur.fetchall()
+    alumnos_list = cur.fetchall()
     conn.close()
-    return render_template('agenda.html', turnos=turnos, alumnos=alumnos, 
-                           inicio=inicio_semana, fin=fin_semana, 
-                           horarios=horarios_fijos, timedelta=timedelta)
+    return render_template('agenda.html', turnos=turnos, alumnos=alumnos_list, inicio=inicio_semana, fin=fin_semana, horarios=horarios_fijos, timedelta=timedelta)
 
 @app.route('/agregar_turno', methods=['POST'])
 @login_required
@@ -149,13 +111,10 @@ def agregar_turno():
     fecha_ref = datetime.strptime(request.form.get('fecha_inicio'), '%Y-%m-%d')
     dias_map = {'Lunes':0, 'Martes':1, 'Miércoles':2, 'Jueves':3, 'Viernes':4, 'Sábado':5}
     fecha_final = (fecha_ref + timedelta(days=dias_map[dia_nombre])).date()
-
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO turnos (alumno_id, dia_semana, hora, fecha, observaciones) 
-        VALUES (%s, %s, %s, %s, %s)
-    """, (request.form.get('alumno_id'), dia_nombre, request.form.get('hora'), fecha_final, request.form.get('observaciones')))
+    cur.execute("INSERT INTO turnos (alumno_id, dia_semana, hora, fecha, observaciones) VALUES (%s, %s, %s, %s, %s)",
+               (request.form.get('alumno_id'), dia_nombre, request.form.get('hora'), fecha_final, request.form.get('observaciones')))
     conn.commit()
     conn.close()
     return redirect(url_for('agenda', fecha=request.form.get('fecha_inicio')))
@@ -178,35 +137,41 @@ def mover_turno():
     dias_map = {'Lunes':0, 'Martes':1, 'Miércoles':2, 'Jueves':3, 'Viernes':4, 'Sábado':5}
     fecha_ref = datetime.strptime(data.get('fecha_inicio'), '%Y-%m-%d')
     nueva_fecha = (fecha_ref + timedelta(days=dias_map[data.get('dia_semana')])).date()
-
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("UPDATE turnos SET dia_semana=%s, fecha=%s WHERE id=%s", 
-               (data.get('dia_semana'), nueva_fecha, data.get('id')))
+    cur.execute("UPDATE turnos SET dia_semana=%s, fecha=%s WHERE id=%s", (data.get('dia_semana'), nueva_fecha, data.get('id')))
     conn.commit()
     conn.close()
     return jsonify(status="ok")
 
-# --- FACTURACIÓN ---
+# --- FACTURACIÓN (Nueva lógica de listado de alumnos) ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("SELECT p.*, a.nombre || ' ' || COALESCE(a.apellido, '') as alumno_nombre FROM pagos p JOIN alumnos a ON p.alumno_id = a.id ORDER BY p.fecha DESC")
+    # Listado de alumnos para cobrar
+    cur.execute("SELECT id, nombre, apellido, dni FROM alumnos ORDER BY apellido ASC")
+    alumnos_cobro = cur.fetchall()
+    # Historial de pagos
+    cur.execute("""
+        SELECT p.*, a.nombre || ' ' || a.apellido as alumno_nombre 
+        FROM pagos p JOIN alumnos a ON p.alumno_id = a.id 
+        ORDER BY p.fecha DESC LIMIT 50
+    """)
     pagos = cur.fetchall()
-    cur.execute("SELECT id, nombre, apellido FROM alumnos ORDER BY apellido ASC")
-    alumnos = cur.fetchall()
     conn.close()
-    return render_template('facturacion.html', pagos=pagos, alumnos=alumnos)
+    return render_template('facturacion.html', alumnos=alumnos_cobro, pagos=pagos)
 
 @app.route('/registrar_pago', methods=['POST'])
 @login_required
 def registrar_pago():
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("INSERT INTO pagos (alumno_id, monto, concepto, estado, fecha) VALUES (%s, %s, %s, %s, CURRENT_DATE)", 
-               (request.form.get('alumno_id'), request.form.get('monto'), request.form.get('concepto'), request.form.get('estado')))
+    cur.execute("""
+        INSERT INTO pagos (alumno_id, monto, concepto, estado, fecha) 
+        VALUES (%s, %s, %s, 'Pagado', CURRENT_DATE)
+    """, (request.form.get('alumno_id'), request.form.get('monto'), request.form.get('concepto')))
     conn.commit()
     conn.close()
     return redirect(url_for('facturacion'))
