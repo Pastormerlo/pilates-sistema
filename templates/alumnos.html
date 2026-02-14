@@ -3,7 +3,6 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2 class="fw-bold"><i class="fas fa-users text-primary me-2"></i>Gestión de Alumnos</h2>
-        <p class="text-muted">Administrá la base de datos de tu estudio.</p>
     </div>
     <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAlumno">
         <i class="fas fa-user-plus me-2"></i>Nuevo Alumno
@@ -15,66 +14,85 @@
         <table class="table table-hover align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Nombre y Apellido</th>
-                    <th>Teléfono / WhatsApp</th>
-                    <th class="text-center">Acciones</th>
+                    <th>Alumno</th>
+                    <th>DNI</th>
+                    <th>Teléfono</th>
+                    <th>Obra Social</th>
+                    <th class="text-center">Ficha</th>
                 </tr>
             </thead>
             <tbody>
-                {% if alumnos %}
-                    {% for alumno in alumnos %}
-                    <tr>
-                        <td class="fw-bold">{{ alumno.nombre }}</td>
-                        <td>
-                            {% if alumno.telefono %}
-                                <a href="https://wa.me/{{ alumno.telefono }}" target="_blank" class="text-decoration-none text-success">
-                                    <i class="fab fa-whatsapp me-1"></i> {{ alumno.telefono }}
-                                </a>
-                            {% else %}
-                                <span class="text-muted small">Sin teléfono</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-secondary" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="3" class="text-center py-4 text-muted">
-                            No hay alumnos registrados todavía.
-                        </td>
-                    </tr>
-                {% endif %}
+                {% for alumno in alumnos %}
+                <tr>
+                    <td><strong>{{ alumno.apellido }}, {{ alumno.nombre }}</strong></td>
+                    <td>{{ alumno.dni or '-' }}</td>
+                    <td>{{ alumno.telefono or '-' }}</td>
+                    <td>{{ alumno.obra_social or '-' }}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#ver{{ alumno.id }}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+
+                <div class="modal fade" id="ver{{ alumno.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-info text-white">
+                                <h5 class="modal-title">Ficha Médica: {{ alumno.nombre }} {{ alumno.apellido }}</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>Domicilio:</strong> {{ alumno.domicilio }}</p>
+                                        <p><strong>Fecha Nac:</strong> {{ alumno.fecha_nacimiento }}</p>
+                                        <p><strong>Emergencias:</strong> {{ alumno.contacto_emergencia }}</p>
+                                        <p><strong>Médico:</strong> {{ alumno.medico_cabecera }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Peso:</strong> {{ alumno.peso }} kg | <strong>Altura:</strong> {{ alumno.altura }} m</p>
+                                        <p><strong>Patologías/Cirugías:</strong> {{ alumno.patologias_cirugias }}</p>
+                                        <p><strong>Observaciones:</strong> {{ alumno.observaciones }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 
 <div class="modal fade" id="modalAlumno" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
             <form action="/agregar_alumno" method="POST">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Registrar Alumno</h5>
+                    <h5 class="modal-title">Nuevo Registro de Alumno</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nombre Completo</label>
-                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Juan Pérez" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Teléfono (con código de área)</label>
-                        <input type="text" name="telefono" class="form-control" placeholder="Ej: 54911..." required>
-                        <div class="form-text text-muted">Sin espacios ni guiones para WhatsApp.</div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Nombre</label><input type="text" name="nombre" class="form-control" required></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Apellido</label><input type="text" name="apellido" class="form-control" required></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">DNI</label><input type="text" name="dni" class="form-control"></div>
+                        <div class="col-md-8 mb-3"><label class="form-label">Domicilio</label><input type="text" name="domicilio" class="form-control"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Teléfono</label><input type="text" name="telefono" class="form-control"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Contacto Emergencia</label><input type="text" name="contacto_emergencia" class="form-control"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Fecha Nacimiento</label><input type="date" name="fecha_nacimiento" class="form-control"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Peso (kg)</label><input type="number" step="0.1" name="peso" class="form-control"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Altura (m)</label><input type="number" step="0.01" name="altura" class="form-control"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Obra Social</label><input type="text" name="obra_social" class="form-control"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Médico Cabecera</label><input type="text" name="medico_cabecera" class="form-control"></div>
+                        <div class="col-12 mb-3"><label class="form-label">Patologías / Cirugías</label><textarea name="patologias_cirugias" class="form-control" rows="2"></textarea></div>
+                        <div class="col-12 mb-3"><label class="form-label">Observaciones</label><textarea name="observaciones" class="form-control" rows="2"></textarea></div>
                     </div>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary px-4">Guardar Alumno</button>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary w-100">Guardar Alumno</button>
                 </div>
             </form>
         </div>
