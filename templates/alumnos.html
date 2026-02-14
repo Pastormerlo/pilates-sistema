@@ -1,0 +1,83 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold"><i class="fas fa-users text-primary me-2"></i>Gestión de Alumnos</h2>
+        <p class="text-muted">Administrá la base de datos de tu estudio.</p>
+    </div>
+    <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAlumno">
+        <i class="fas fa-user-plus me-2"></i>Nuevo Alumno
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm p-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Nombre y Apellido</th>
+                    <th>Teléfono / WhatsApp</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if alumnos %}
+                    {% for alumno in alumnos %}
+                    <tr>
+                        <td class="fw-bold">{{ alumno.nombre }}</td>
+                        <td>
+                            {% if alumno.telefono %}
+                                <a href="https://wa.me/{{ alumno.telefono }}" target="_blank" class="text-decoration-none text-success">
+                                    <i class="fab fa-whatsapp me-1"></i> {{ alumno.telefono }}
+                                </a>
+                            {% else %}
+                                <span class="text-muted small">Sin teléfono</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center py-4 text-muted">
+                            No hay alumnos registrados todavía.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAlumno" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form action="/agregar_alumno" method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Registrar Alumno</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre Completo</label>
+                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Juan Pérez" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Teléfono (con código de área)</label>
+                        <input type="text" name="telefono" class="form-control" placeholder="Ej: 54911..." required>
+                        <div class="form-text text-muted">Sin espacios ni guiones para WhatsApp.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Guardar Alumno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
