@@ -1,90 +1,101 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-file-invoice-dollar text-primary"></i> Control de Facturación</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPago">
-        <i class="fas fa-plus"></i> Registrar Nuevo Pago
-    </button>
-</div>
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-hand-holding-usd me-2"></i>Cobro Rápido</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" style="max-height: 500px; overflow-y: auto;">
+                    {% for a in alumnos %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <div>
+                            <h6 class="mb-0 fw-bold">{{ a.apellido }}, {{ a.nombre }}</h6>
+                            <small class="text-muted">DNI: {{ a.dni }}</small>
+                        </div>
+                        <button class="btn btn-sm btn-success rounded-pill px-3" 
+                                onclick="prepararCobro('{{ a.id }}', '{{ a.nombre }} {{ a.apellido }}')"
+                                data-bs-toggle="modal" data-bs-target="#modalPago">
+                            Cobrar
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div class="card p-3">
-    <table class="table table-hover">
-        <thead class="table-light">
-            <tr>
-                <th>Fecha</th>
-                <th>Alumno</th>
-                <th>Concepto</th>
-                <th>Monto</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for pago in pagos %}
-            <tr>
-                <td>{{ pago.fecha }}</td>
-                <td>{{ pago.alumno_nombre }}</td>
-                <td>{{ pago.concepto }}</td>
-                <td><strong>${{ "{:,.2f}".format(pago.monto) }}</strong></td>
-                <td>
-                    {% if pago.estado == 'Pagado' %}
-                        <span class="badge bg-success">Pagado</span>
-                    {% elif pago.estado == 'A cuenta' %}
-                        <span class="badge bg-warning text-dark">A cuenta</span>
-                    {% else %}
-                        <span class="badge bg-danger">Pendiente</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="/imprimir_pago/{{ pago.id }}" class="btn btn-sm btn-outline-secondary" target="_blank">
-                        <i class="fas fa-print"></i>
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-dark text-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-history me-2"></i>Últimos Movimientos</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0 px-3">Fecha</th>
+                                <th class="border-0">Alumno</th>
+                                <th class="border-0">Concepto</th>
+                                <th class="border-0 text-end px-3">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in pagos %}
+                            <tr>
+                                <td class="px-3 small">{{ p.fecha.strftime('%d/%m/%Y') }}</td>
+                                <td class="fw-bold">{{ p.alumno_nombre }}</td>
+                                <td><span class="badge bg-info bg-opacity-10 text-info">{{ p.concepto }}</span></td>
+                                <td class="text-end fw-bold text-success px-3">${{ p.monto }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="modalPago" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content border-0">
             <form action="/registrar_pago" method="POST">
-                <div class="modal-header">
-                    <h5 class="modal-title">Nuevo Pago</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <input type="hidden" name="alumno_id" id="input_alumno_id">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Registrar Cobro</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
+                    <h5 class="text-center mb-4" id="nombre_alumno_modal"></h5>
                     <div class="mb-3">
-                        <label class="form-label">Alumno</label>
-                        <select name="alumno_id" class="form-select" required>
-                            {% for alumno in alumnos %}
-                            <option value="{{ alumno.id }}">{{ alumno.nombre }}</option>
-                            {% endfor %}
+                        <label class="form-label fw-bold">Concepto</label>
+                        <select name="concepto" class="form-select" required>
+                            <option value="Cuota Mensual">Cuota Mensual</option>
+                            <option value="Clase Suelta">Clase Suelta</option>
+                            <option value="Pack de Clases">Pack de Clases</option>
+                            <option value="Otro">Otro</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Monto ($)</label>
-                        <input type="number" name="monto" class="form-control" placeholder="0.00" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Concepto</label>
-                        <input type="text" name="concepto" class="form-control" placeholder="Ej: Cuota Marzo" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Estado del Pago</label>
-                        <select name="estado" class="form-select">
-                            <option value="Pagado">Pagado</option>
-                            <option value="Pendiente" selected>Pendiente</option>
-                            <option value="A cuenta">A cuenta</option>
-                        </select>
+                        <label class="form-label fw-bold">Monto ($)</label>
+                        <input type="number" name="monto" class="form-control form-control-lg text-success fw-bold" placeholder="0.00" required>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary w-100">Guardar Pago</button>
+                <div class="modal-footer border-0">
+                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold">REGISTRAR PAGO</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+function prepararCobro(id, nombre) {
+    document.getElementById('input_alumno_id').value = id;
+    document.getElementById('nombre_alumno_modal').innerText = nombre;
+}
+</script>
 {% endblock %}
