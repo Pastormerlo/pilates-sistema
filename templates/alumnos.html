@@ -1,130 +1,116 @@
 {% extends 'layout.html' %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold"><i class="fas fa-users text-primary me-2"></i>Gestión de Alumnos</h2>
+    <h4 class="fw-bold mb-0">Gestión de Alumnos</h4>
     <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAlumno">
-        <i class="fas fa-user-plus me-2"></i>Nuevo Alumno
+        <i class="fas fa-plus me-1"></i> <span class="d-none d-md-inline">Nuevo Alumno</span>
     </button>
 </div>
 
-<div class="card border-0 shadow-sm p-3">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Alumno</th>
-                    <th>DNI</th>
-                    <th>Teléfono</th>
-                    <th class="text-center">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for alumno in alumnos %}
-                <tr>
-                    <td><strong>{{ alumno.apellido }}, {{ alumno.nombre }}</strong></td>
-                    <td>{{ alumno.dni or '-' }}</td>
-                    <td>{{ alumno.telefono or '-' }}</td>
-                    <td class="text-center">
-                        <div class="btn-group shadow-sm">
-                            <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#ver{{ alumno.id }}"><i class="fas fa-eye"></i></button>
-                            <button class="btn btn-sm btn-warning text-white" data-bs-toggle="modal" data-bs-target="#edit{{ alumno.id }}"><i class="fas fa-edit"></i></button>
-                            <a href="{{ url_for('eliminar_alumno', id=alumno.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar alumno?')"><i class="fas fa-trash-alt"></i></a>
-                        </div>
-                    </td>
-                </tr>
-
-                <div class="modal fade" id="edit{{ alumno.id }}" tabindex="-1">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content border-0">
-                            <form action="{{ url_for('editar_alumno', id=alumno.id) }}" method="POST">
-                                <div class="modal-header bg-warning text-white">
-                                    <h5 class="modal-title">Editar: {{ alumno.nombre }}</h5>
-                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body p-4">
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3"><label>Nombre</label><input type="text" name="nombre" value="{{ alumno.nombre }}" class="form-control" required></div>
-                                        <div class="col-md-6 mb-3"><label>Apellido</label><input type="text" name="apellido" value="{{ alumno.apellido }}" class="form-control" required></div>
-                                        <div class="col-md-4 mb-3"><label>DNI</label><input type="text" name="dni" value="{{ alumno.dni }}" class="form-control"></div>
-                                        <div class="col-md-8 mb-3"><label>Domicilio</label><input type="text" name="domicilio" value="{{ alumno.domicilio }}" class="form-control"></div>
-                                        <div class="col-md-6 mb-3"><label>Teléfono</label><input type="text" name="telefono" value="{{ alumno.telefono }}" class="form-control"></div>
-                                        <div class="col-md-6 mb-3"><label>Emergencia</label><input type="text" name="contacto_emergencia" value="{{ alumno.contacto_emergencia }}" class="form-control"></div>
-                                        <div class="col-md-4 mb-3"><label>Fecha Nac.</label><input type="date" name="fecha_nacimiento" value="{{ alumno.fecha_nacimiento }}" class="form-control"></div>
-                                        <div class="col-md-4 mb-3"><label>Peso</label><input type="number" step="0.1" name="peso" value="{{ alumno.peso }}" class="form-control"></div>
-                                        <div class="col-md-4 mb-3"><label>Altura</label><input type="number" step="0.01" name="altura" value="{{ alumno.altura }}" class="form-control"></div>
-                                        <div class="col-md-6 mb-3"><label>Obra Social</label><input type="text" name="obra_social" value="{{ alumno.obra_social }}" class="form-control"></div>
-                                        <div class="col-md-6 mb-3"><label>Médico</label><input type="text" name="medico_cabecera" value="{{ alumno.medico_cabecera }}" class="form-control"></div>
-                                        <div class="col-12 mb-3"><label>Patologías</label><textarea name="patologias_cirugias" class="form-control">{{ alumno.patologias_cirugias }}</textarea></div>
-                                        <div class="col-12 mb-3"><label>Observaciones</label><textarea name="observaciones" class="form-control">{{ alumno.observaciones }}</textarea></div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer border-0"><button type="submit" class="btn btn-warning text-white w-100">Guardar Cambios</button></div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal fade" id="ver{{ alumno.id }}" tabindex="-1">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content border-0">
-                            <div class="modal-header bg-info text-white">
-                                <h5 class="modal-title">Ficha: {{ alumno.apellido }}, {{ alumno.nombre }}</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body p-4">
-                                <div class="row">
-                                    <div class="col-md-6 border-end">
-                                        <p><strong>DNI:</strong> {{ alumno.dni or '-' }}</p>
-                                        <p><strong>Domicilio:</strong> {{ alumno.domicilio or '-' }}</p>
-                                        <p><strong>Teléfono:</strong> {{ alumno.telefono or '-' }}</p>
-                                        <p><strong>Emergencia:</strong> {{ alumno.contacto_emergencia or '-' }}</p>
-                                        <p><strong>Médico:</strong> {{ alumno.medico_cabecera or '-' }}</p>
-                                    </div>
-                                    <div class="col-md-6 ps-4">
-                                        <p><strong>F. Nac:</strong> {{ alumno.fecha_nacimiento or '-' }}</p>
-                                        <p><strong>Peso/Alt:</strong> {{ alumno.peso or '-' }}kg / {{ alumno.altura or '-' }}m</p>
-                                        <p><strong>Obra Social:</strong> {{ alumno.obra_social or '-' }}</p>
-                                        <p><strong>Patologías:</strong> {{ alumno.patologias_cirugias or '-' }}</p>
-                                        <p><strong>Obs:</strong> {{ alumno.observaciones or '-' }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="border-0 px-3">Nombre y Apellido</th>
+                        <th class="border-0 d-none d-md-table-cell">DNI / Teléfono</th>
+                        <th class="border-0 text-end px-3">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in alumnos %}
+                    <tr>
+                        <td class="px-3">
+                            <span class="fw-bold d-block">{{ a.apellido }}, {{ a.nombre }}</span>
+                            <small class="text-muted d-md-none">{{ a.telefono }}</small>
+                        </td>
+                        <td class="d-none d-md-table-cell">
+                            <span class="small d-block">DNI: {{ a.dni or '-' }}</span>
+                            <span class="small text-muted">Tel: {{ a.telefono or '-' }}</span>
+                        </td>
+                        <td class="text-end px-3">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="verFicha('{{ a.id }}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <a href="/eliminar_alumno/{{ a.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar alumno?')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <div class="modal fade" id="modalAlumno" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow">
-            <form action="{{ url_for('agregar_alumno') }}" method="POST">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Nuevo Registro de Alumno</h5>
+        <div class="modal-content border-0">
+            <form action="/agregar_alumno" method="POST">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold">Ficha Médica / Nuevo Alumno</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="row">
-                        <div class="col-md-6 mb-3"><label>Nombre</label><input type="text" name="nombre" class="form-control" required></div>
-                        <div class="col-md-6 mb-3"><label>Apellido</label><input type="text" name="apellido" class="form-control" required></div>
-                        <div class="col-md-4 mb-3"><label>DNI</label><input type="text" name="dni" class="form-control"></div>
-                        <div class="col-md-8 mb-3"><label>Domicilio</label><input type="text" name="domicilio" class="form-control"></div>
-                        <div class="col-md-6 mb-3"><label>Teléfono</label><input type="text" name="telefono" class="form-control"></div>
-                        <div class="col-md-6 mb-3"><label>Emergencia</label><input type="text" name="contacto_emergencia" class="form-control"></div>
-                        <div class="col-md-4 mb-3"><label>Fecha Nacimiento</label><input type="date" name="fecha_nacimiento" class="form-control"></div>
-                        <div class="col-md-4 mb-3"><label>Peso (kg)</label><input type="number" step="0.1" name="peso" class="form-control"></div>
-                        <div class="col-md-4 mb-3"><label>Altura (m)</label><input type="number" step="0.01" name="altura" class="form-control"></div>
-                        <div class="col-md-6 mb-3"><label>Obra Social</label><input type="text" name="obra_social" class="form-control"></div>
-                        <div class="col-md-6 mb-3"><label>Médico Cabecera</label><input type="text" name="medico_cabecera" class="form-control"></div>
-                        <div class="col-12 mb-3"><label>Patologías</label><textarea name="patologias_cirugias" class="form-control" rows="2"></textarea></div>
-                        <div class="col-12 mb-3"><label>Observaciones</label><textarea name="observaciones" class="form-control" rows="2"></textarea></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Nombre</label>
+                            <input type="text" name="nombre" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Apellido</label>
+                            <input type="text" name="apellido" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">DNI</label>
+                            <input type="text" name="dni" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Teléfono</label>
+                            <input type="text" name="telefono" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Fecha Nac.</label>
+                            <input type="date" name="fecha_nacimiento" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Domicilio</label>
+                            <input type="text" name="domicilio" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Contacto Emergencia</label>
+                            <input type="text" name="contacto_emergencia" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Peso (kg)</label>
+                            <input type="text" name="peso" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Altura (cm)</label>
+                            <input type="text" name="altura" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Patologías / Cirugías</label>
+                            <textarea name="patologias_cirugias" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Obra Social</label>
+                            <input type="text" name="obra_social" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Médico Cabecera</label>
+                            <input type="text" name="medico_cabecera" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Observaciones Generales</label>
+                            <textarea name="observaciones" class="form-control" rows="2"></textarea>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-0">
-                    <button type="submit" class="btn btn-primary w-100 text-uppercase fw-bold">Guardar Alumno</button>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">GUARDAR ALUMNO</button>
                 </div>
             </form>
         </div>
