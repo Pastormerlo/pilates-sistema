@@ -15,25 +15,20 @@
         vertical-align: top;
         background-color: #ffffff;
         border: 1px solid #f0f0f0;
-        padding: 0 !important; /* Quitamos padding para que el desplegable ocupe todo */
+        padding: 0 !important;
     }
 
-    /* Estilo del Desplegable */
-    details {
-        width: 100%;
-        cursor: pointer;
-    }
+    details { width: 100%; cursor: pointer; }
     summary {
         padding: 10px 5px;
         font-size: 0.75rem;
         font-weight: bold;
         text-align: center;
-        list-style: none; /* Quita la flechita por defecto */
+        list-style: none;
         transition: background 0.3s;
     }
-    summary::-webkit-details-marker { display: none; } /* Quita flecha en Safari */
+    summary::-webkit-details-marker { display: none; }
 
-    /* Colores según estado */
     .turno-vacio { color: #adb5bd; }
     .turno-con-gente { background-color: #e7f1ff; color: #0d6efd; }
     .turno-completo { background-color: #198754; color: white; }
@@ -55,15 +50,14 @@
         align-items: center;
         margin-bottom: 3px;
     }
-    .alumno-chip:hover { background-color: #e9ecef; }
 </style>
 
 <div class="card border-0 shadow-sm mb-3 no-print">
     <div class="card-body p-2 px-3 d-flex justify-content-between align-items-center">
-        <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-list-ul me-2 text-primary"></i>Agenda Compacta</h6>
+        <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-week me-2 text-primary"></i>Agenda Lunes a Viernes</h6>
         <div class="btn-group shadow-sm">
             <a href="/agenda?fecha={{ (inicio - timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light btn-sm border"><i class="fas fa-chevron-left"></i></a>
-            <span class="btn btn-light btn-sm border fw-bold small text-primary">{{ inicio.strftime('%d/%m') }}</span>
+            <span class="btn btn-light btn-sm border fw-bold small text-primary">{{ inicio.strftime('%d/%m') }} al {{ fin.strftime('%d/%m') }}</span>
             <a href="/agenda?fecha={{ (inicio + timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light btn-sm border"><i class="fas fa-chevron-right"></i></a>
         </div>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTurno">
@@ -77,14 +71,14 @@
         <thead>
             <tr>
                 <th class="col-hora">HORA</th>
-                {% for d in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}<th>{{ d }}</th>{% endfor %}
+                {% for d in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'] %}<th>{{ d }}</th>{% endfor %}
             </tr>
         </thead>
         <tbody>
             {% for h in horarios %}
             <tr>
                 <td class="text-center fw-bold align-middle bg-light" style="font-size: 0.75rem;">{{ h }}</td>
-                {% for dia in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}
+                {% for dia in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'] %}
                     <td class="celda-turno drop-zone" data-dia="{{ dia }}" data-hora="{{ h }}">
                         
                         {% set alumnos_en_este_turno = [] %}
@@ -100,25 +94,20 @@
                         <details>
                             <summary class="{% if cant == 0 %}turno-vacio{% elif cant >= 6 %}turno-completo{% else %}turno-con-gente{% endif %}">
                                 {% if cant == 0 %}
-                                    <small>Vacío</small>
+                                    <small>-</small>
                                 {% elif cant >= 6 %}
-                                    <i class="fas fa-check-circle me-1"></i> COMPLETO
+                                    <i class="fas fa-check-circle"></i>
                                 {% else %}
-                                    {{ cant }} Alumno{% if cant > 1 %}s{% endif %}
+                                    {{ cant }} / 6
                                 {% endif %}
                             </summary>
-                            
                             <div class="lista-desplegada">
-                                {% if cant > 0 %}
-                                    {% for t in alumnos_en_este_turno %}
-                                    <div class="alumno-chip draggable" draggable="true" data-id="{{ t.id }}">
-                                        <span class="text-truncate">{{ t.apellido }}</span>
-                                        <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger ms-1" style="text-decoration:none;">×</a>
-                                    </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="text-center py-2 text-muted" style="font-size: 0.6rem;">Sin alumnos</div>
-                                {% endif %}
+                                {% for t in alumnos_en_este_turno %}
+                                <div class="alumno-chip draggable" draggable="true" data-id="{{ t.id }}">
+                                    <span class="text-truncate">{{ t.apellido }}</span>
+                                    <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger ms-1" style="text-decoration:none;">×</a>
+                                </div>
+                                {% endfor %}
                             </div>
                         </details>
                     </td>
@@ -149,7 +138,7 @@
                         <div class="col-6">
                             <label class="form-label small fw-bold">Día</label>
                             <select name="dia_semana" class="form-select">
-                                {% for d in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+                                {% for d in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'] %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
                             </select>
                         </div>
                         <div class="col-6">
