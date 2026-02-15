@@ -19,7 +19,6 @@
         padding: 2px !important;
     }
 
-    /* Caja de Horario Completo */
     .box-completo {
         background-color: #198754;
         color: white;
@@ -28,21 +27,12 @@
         text-align: center;
         padding: 15px 5px;
         border-radius: 4px;
-        cursor: pointer;
         display: flex;
         flex-direction: column;
         justify-content: center;
         height: 100%;
     }
-    .box-completo:hover { background-color: #146c43; }
-    .box-completo i { font-size: 1.2rem; margin-bottom: 5px; }
 
-    /* Lista de alumnos cuando hay lugar */
-    .lista-alumnos {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
     .alumno-chip {
         font-size: 0.65rem;
         padding: 2px 5px;
@@ -53,6 +43,7 @@
         justify-content: space-between;
         align-items: center;
         color: #084298;
+        margin-bottom: 2px;
     }
     .cupo-indicador {
         font-size: 0.6rem;
@@ -90,32 +81,35 @@
             <tr>
                 <td class="text-center fw-bold align-middle bg-light" style="font-size: 0.75rem;">{{ h }}</td>
                 {% for dia in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}
-                    {% set alumnos_turno = [] %}
-                    {% for t in turnos %}
-                        {% if t.dia_semana == dia and (t.hora.strftime('%H:%M') if t.hora.strftime else t.hora) == h %}
-                            {% do alumnos_turno.append(t) %}
-                        {% endif %}
-                    {% endfor %}
-                    
                     <td class="celda-turno drop-zone" data-dia="{{ dia }}" data-hora="{{ h }}">
-                        {% if alumnos_turno|length >= 6 %}
-                            <div class="box-completo" onclick="alert('Alumnos: {% for a in alumnos_turno %}{{ a.apellido }}{% if not loop.last %}, {% endif %}{% endfor %}')">
+                        
+                        {# Filtramos los alumnos para esta hora y día directamente #}
+                        {% set alumnos_en_este_turno = [] %}
+                        {% for t in turnos %}
+                            {% set hora_turno = t.hora.strftime('%H:%M') if t.hora.strftime else t.hora %}
+                            {% if t.dia_semana == dia and hora_turno == h %}
+                                {% set _ = alumnos_en_este_turno.append(t) %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if alumnos_en_este_turno|length >= 6 %}
+                            <div class="box-completo">
                                 <i class="fas fa-users"></i>
                                 CUPO COMPLETO
                                 <div style="font-size: 0.6rem; opacity: 0.8;">(6 de 6)</div>
                             </div>
                         {% else %}
                             <div class="lista-alumnos">
-                                {% for t in alumnos_turno %}
+                                {% for t in alumnos_en_este_turno %}
                                 <div class="alumno-chip draggable" draggable="true" data-id="{{ t.id }}">
                                     <span class="text-truncate">{{ t.apellido }}</span>
-                                    <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger">×</a>
+                                    <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger" style="text-decoration:none;">×</a>
                                 </div>
                                 {% endfor %}
                             </div>
-                            {% if alumnos_turno|length > 0 %}
+                            {% if alumnos_en_este_turno|length > 0 %}
                                 <div class="cupo-indicador text-uppercase">
-                                    {{ 6 - alumnos_turno|length }} Libres
+                                    {{ 6 - alumnos_en_este_turno|length }} LIBRES
                                 </div>
                             {% endif %}
                         {% endif %}
@@ -144,13 +138,13 @@
                         </select>
                     </div>
                     <div class="row g-2">
-                        <div class="col-6 mb-2">
+                        <div class="col-6">
                             <label class="form-label small fw-bold">Día</label>
                             <select name="dia_semana" class="form-select">
                                 {% for d in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
                             </select>
                         </div>
-                        <div class="col-6 mb-2">
+                        <div class="col-6">
                             <label class="form-label small fw-bold">Hora</label>
                             <select name="hora" class="form-select">
                                 {% for h in horarios %}<option value="{{ h }}">{{ h }} hs</option>{% endfor %}
