@@ -1,97 +1,125 @@
 {% extends 'layout.html' %}
 {% block content %}
 <style>
-    .table-agenda {
-        table-layout: fixed;
-        border-collapse: separate;
-        border-spacing: 2px;
-    }
+    .table-agenda { table-layout: fixed; border-spacing: 1px; }
     .table-agenda th {
-        font-size: 0.75rem;
-        text-transform: uppercase;
+        font-size: 0.7rem;
         background-color: #212529 !important;
         color: white;
         text-align: center;
-        padding: 8px 2px;
-        width: 15%;
+        padding: 5px;
     }
-    .col-hora { width: 70px !important; background-color: #f8f9fa; fw-bold; }
+    .col-hora { width: 60px !important; background-color: #f8f9fa; }
     
     .celda-turno {
-        height: 100px; /* Altura fija para que la grilla sea simétrica */
+        height: 110px;
         vertical-align: top;
         background-color: #ffffff;
-        border: 1px solid #e9ecef;
-        padding: 4px !important;
-        overflow-y: auto;
+        border: 1px solid #f0f0f0;
+        padding: 2px !important;
     }
-    
-    .alumno-chip {
+
+    /* Caja de Horario Completo */
+    .box-completo {
+        background-color: #198754;
+        color: white;
         font-size: 0.7rem;
-        padding: 2px 4px;
-        margin-bottom: 2px;
-        background-color: #e7f1ff;
+        font-weight: bold;
+        text-align: center;
+        padding: 15px 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: 100%;
+    }
+    .box-completo:hover { background-color: #146c43; }
+    .box-completo i { font-size: 1.2rem; margin-bottom: 5px; }
+
+    /* Lista de alumnos cuando hay lugar */
+    .lista-alumnos {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .alumno-chip {
+        font-size: 0.65rem;
+        padding: 2px 5px;
+        background-color: #f0f7ff;
         border-left: 3px solid #0d6efd;
-        border-radius: 3px;
+        border-radius: 2px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         color: #084298;
-        font-weight: 600;
     }
-    .alumno-chip:hover { background-color: #cfe2ff; }
-    .alumno-chip a { color: #dc3545; text-decoration: none; padding-left: 4px; }
-
-    .btn-add-mini {
+    .cupo-indicador {
         font-size: 0.6rem;
-        padding: 0px 4px;
-        float: right;
-        color: #adb5bd;
+        color: #6c757d;
+        text-align: center;
+        margin-top: 4px;
+        font-weight: bold;
     }
 </style>
 
 <div class="card border-0 shadow-sm mb-3 no-print">
     <div class="card-body p-2 px-3 d-flex justify-content-between align-items-center">
-        <h6 class="fw-bold mb-0"><i class="fas fa-th me-2 text-primary"></i>Panel de Control de Clases</h6>
+        <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-check me-2 text-success"></i>Control de Cupos</h6>
         <div class="btn-group shadow-sm">
             <a href="/agenda?fecha={{ (inicio - timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light btn-sm border"><i class="fas fa-chevron-left"></i></a>
-            <span class="btn btn-light btn-sm border fw-bold">{{ inicio.strftime('%d/%m') }} - {{ fin.strftime('%d/%m') }}</span>
+            <span class="btn btn-light btn-sm border fw-bold small">{{ inicio.strftime('%d/%m') }}</span>
             <a href="/agenda?fecha={{ (inicio + timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light btn-sm border"><i class="fas fa-chevron-right"></i></a>
         </div>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTurno">
-            <i class="fas fa-plus me-1"></i> Nuevo Turno
+            <i class="fas fa-plus"></i>
         </button>
     </div>
 </div>
 
 <div class="table-responsive shadow-sm rounded">
-    <table class="table table-agenda mb-0">
+    <table class="table table-agenda mb-0 bg-white">
         <thead>
             <tr>
                 <th class="col-hora">HORA</th>
-                <th>LUNES</th>
-                <th>MARTES</th>
-                <th>MIÉRCOLES</th>
-                <th>JUEVES</th>
-                <th>VIERNES</th>
-                <th>SÁBADO</th>
+                {% for d in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}<th>{{ d }}</th>{% endfor %}
             </tr>
         </thead>
         <tbody>
             {% for h in horarios %}
             <tr>
-                <td class="text-center fw-bold align-middle bg-light small">{{ h }}</td>
+                <td class="text-center fw-bold align-middle bg-light" style="font-size: 0.75rem;">{{ h }}</td>
                 {% for dia in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}
-                <td class="celda-turno drop-zone" data-dia="{{ dia }}" data-hora="{{ h }}">
+                    {% set alumnos_turno = [] %}
                     {% for t in turnos %}
                         {% if t.dia_semana == dia and (t.hora.strftime('%H:%M') if t.hora.strftime else t.hora) == h %}
-                        <div class="alumno-chip draggable" draggable="true" data-id="{{ t.id }}">
-                            <span class="text-truncate">{{ t.apellido }}</span>
-                            <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" onclick="return confirm('¿Quitar?')">×</a>
-                        </div>
+                            {% do alumnos_turno.append(t) %}
                         {% endif %}
                     {% endfor %}
-                </td>
+                    
+                    <td class="celda-turno drop-zone" data-dia="{{ dia }}" data-hora="{{ h }}">
+                        {% if alumnos_turno|length >= 6 %}
+                            <div class="box-completo" onclick="alert('Alumnos: {% for a in alumnos_turno %}{{ a.apellido }}{% if not loop.last %}, {% endif %}{% endfor %}')">
+                                <i class="fas fa-users"></i>
+                                CUPO COMPLETO
+                                <div style="font-size: 0.6rem; opacity: 0.8;">(6 de 6)</div>
+                            </div>
+                        {% else %}
+                            <div class="lista-alumnos">
+                                {% for t in alumnos_turno %}
+                                <div class="alumno-chip draggable" draggable="true" data-id="{{ t.id }}">
+                                    <span class="text-truncate">{{ t.apellido }}</span>
+                                    <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger">×</a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if alumnos_turno|length > 0 %}
+                                <div class="cupo-indicador text-uppercase">
+                                    {{ 6 - alumnos_turno|length }} Libres
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </td>
                 {% endfor %}
             </tr>
             {% endfor %}
@@ -105,7 +133,7 @@
             <form action="/agregar_turno" method="POST">
                 <input type="hidden" name="fecha_inicio" value="{{ inicio.strftime('%Y-%m-%d') }}">
                 <div class="modal-header bg-primary text-white py-2">
-                    <h6 class="modal-title fw-bold">Asignar Alumno a Grilla</h6>
+                    <h6 class="modal-title fw-bold">Asignar Alumno</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-3">
@@ -131,7 +159,7 @@
                     </div>
                 </div>
                 <div class="modal-footer border-0 p-2">
-                    <button type="submit" class="btn btn-primary w-100 fw-bold">CONFIRMAR HORARIO FIJO</button>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">CONFIRMAR</button>
                 </div>
             </form>
         </div>
@@ -153,15 +181,13 @@
             e.preventDefault();
             const draggable = document.querySelector('.dragging');
             if(!draggable) return;
-            
-            // Ahora mandamos también la hora al mover
             fetch('/mover_turno', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     id: draggable.getAttribute('data-id'),
                     dia_semana: container.getAttribute('data-dia'),
-                    hora: container.getAttribute('data-hora') // Agregamos hora
+                    hora: container.getAttribute('data-hora')
                 })
             }).then(() => location.reload());
         });
