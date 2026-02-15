@@ -48,7 +48,7 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- SECCIÓN ALUMNOS (13 CAMPOS) ---
+# --- ALUMNOS (13 CAMPOS) ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -92,7 +92,7 @@ def eliminar_alumno(id):
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- SECCIÓN AGENDA ---
+# --- AGENDA (COMPACTA + MOVIL) ---
 @app.route('/agenda')
 @login_required
 def agenda():
@@ -157,35 +157,33 @@ def mover_turno():
     conn.close()
     return jsonify(status="ok")
 
-# --- SECCIÓN FACTURACIÓN ---
+# --- FACTURACIÓN (CON IMPRESIÓN) ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("SELECT id, nombre, apellido, dni FROM alumnos ORDER BY apellido ASC")
+    cur.execute("SELECT id, nombre, apellido FROM alumnos ORDER BY apellido ASC")
     alumnos_cobro = cur.fetchall()
     cur.execute("""
         SELECT p.*, a.nombre || ' ' || a.apellido as alumno_nombre 
         FROM pagos p JOIN alumnos a ON p.alumno_id = a.id 
-        ORDER BY p.fecha DESC LIMIT 50
+        ORDER BY p.fecha DESC LIMIT 100
     """)
     pagos = cur.fetchall()
     conn.close()
-    return render_template('facturacion.html', alumnos=alumnos_cobro, pagos=pagos)
+    return render_template('facturacion.html', alumnos=alumnos_cobro, pagos=pagos, datetime=datetime)
 
 @app.route('/registrar_pago', methods=['POST'])
 @login_required
 def registrar_pago():
-    alumno_id = request.form.get('alumno_id')
-    monto = request.form.get('monto')
     concepto_final = f"{request.form.get('concepto')} - {request.form.get('mes')}"
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO pagos (alumno_id, monto, concepto, estado, fecha) 
         VALUES (%s, %s, %s, 'Pagado', CURRENT_DATE)
-    """, (alumno_id, monto, concepto_final))
+    """, (request.form.get('alumno_id'), request.form.get('monto'), concepto_final))
     conn.commit()
     conn.close()
     return redirect(url_for('facturacion'))
