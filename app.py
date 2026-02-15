@@ -48,7 +48,7 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- GESTIÓN DE ALUMNOS ---
+# --- GESTIÓN DE ALUMNOS (13 CAMPOS + EDICIÓN) ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -118,14 +118,17 @@ def eliminar_alumno(id):
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- AGENDA PERMANENTE ---
+# --- AGENDA PERMANENTE (LUNES A VIERNES) ---
 @app.route('/agenda')
 @login_required
 def agenda():
     fecha_str = request.args.get('fecha')
     fecha_actual = datetime.strptime(fecha_str, '%Y-%m-%d') if fecha_str else datetime.now()
     inicio_semana = (fecha_actual - timedelta(days=fecha_actual.weekday())).date()
-    fin_semana = inicio_semana + timedelta(days=5)
+    
+    # Fin de semana ajustado a Viernes (+4 días)
+    fin_semana = inicio_semana + timedelta(days=4)
+    
     horarios_fijos = [f"{h:02d}:00" for h in range(8, 22)]
     
     conn = conectar()
