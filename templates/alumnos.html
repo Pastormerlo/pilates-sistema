@@ -1,116 +1,112 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0">Gestión de Alumnos</h4>
-    <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAlumno">
-        <i class="fas fa-plus me-1"></i> <span class="d-none d-md-inline">Nuevo Alumno</span>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold mb-0 text-dark">Alumnos del Estudio</h4>
+    <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevo">
+        <i class="fas fa-user-plus me-1"></i> Nuevo
     </button>
 </div>
 
 <div class="card border-0 shadow-sm">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="border-0 px-3">Nombre y Apellido</th>
-                        <th class="border-0 d-none d-md-table-cell">DNI / Teléfono</th>
-                        <th class="border-0 text-end px-3">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for a in alumnos %}
-                    <tr>
-                        <td class="px-3">
-                            <span class="fw-bold d-block">{{ a.apellido }}, {{ a.nombre }}</span>
-                            <small class="text-muted d-md-none">{{ a.telefono }}</small>
-                        </td>
-                        <td class="d-none d-md-table-cell">
-                            <span class="small d-block">DNI: {{ a.dni or '-' }}</span>
-                            <span class="small text-muted">Tel: {{ a.telefono or '-' }}</span>
-                        </td>
-                        <td class="text-end px-3">
-                            <button class="btn btn-sm btn-outline-primary me-1" onclick="verFicha('{{ a.id }}')">
-                                <i class="fas fa-eye"></i>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th>Nombre y Apellido</th>
+                    <th>DNI / Teléfono</th>
+                    <th>Obra Social</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in alumnos %}
+                <tr>
+                    <td>
+                        <div class="fw-bold text-dark">{{ a.apellido }}, {{ a.nombre }}</div>
+                        <small class="text-muted">ID: {{ a.id }}</small>
+                    </td>
+                    <td>
+                        <div class="small">{{ a.dni or '---' }}</div>
+                        <div class="small text-muted">{{ a.telefono or '---' }}</div>
+                    </td>
+                    <td><span class="badge bg-light text-dark border">{{ a.obra_social or '---' }}</span></td>
+                    <td class="text-end">
+                        <div class="btn-group shadow-sm">
+                            <button class="btn btn-white btn-sm border" data-bs-toggle="modal" data-bs-target="#modalEdit{{ a.id }}">
+                                <i class="fas fa-edit text-primary"></i>
                             </button>
-                            <a href="/eliminar_alumno/{{ a.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar alumno?')">
-                                <i class="fas fa-trash"></i>
+                            <a href="/eliminar_alumno/{{ a.id }}" class="btn btn-white btn-sm border" onclick="return confirm('¿Borrar definitivamente?')">
+                                <i class="fas fa-trash text-danger"></i>
                             </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                        </div>
+                    </td>
+                </tr>
+
+                <div class="modal fade" id="modalEdit{{ a.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content border-0">
+                            <form action="/editar_alumno/{{ a.id }}" method="POST">
+                                <div class="modal-header bg-primary text-white py-2">
+                                    <h6 class="modal-title fw-bold">Editar Alumno: {{ a.apellido }}</h6>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body p-4">
+                                    <div class="row g-3">
+                                        <div class="col-md-6"><label class="small fw-bold">Nombre</label><input type="text" name="nombre" class="form-control" value="{{ a.nombre }}" required></div>
+                                        <div class="col-md-6"><label class="small fw-bold">Apellido</label><input type="text" name="apellido" class="form-control" value="{{ a.apellido }}" required></div>
+                                        <div class="col-md-4"><label class="small fw-bold">DNI</label><input type="text" name="dni" class="form-control" value="{{ a.dni }}"></div>
+                                        <div class="col-md-4"><label class="small fw-bold">Teléfono</label><input type="text" name="telefono" class="form-control" value="{{ a.telefono }}"></div>
+                                        <div class="col-md-4"><label class="small fw-bold">Emergencias</label><input type="text" name="contacto_emergencia" class="form-control" value="{{ a.contacto_emergencia }}"></div>
+                                        <div class="col-md-12"><label class="small fw-bold">Domicilio</label><input type="text" name="domicilio" class="form-control" value="{{ a.domicilio }}"></div>
+                                        <div class="col-md-4"><label class="small fw-bold">Nacimiento</label><input type="date" name="fecha_nacimiento" class="form-control" value="{{ a.fecha_nacimiento }}"></div>
+                                        <div class="col-md-4"><label class="small fw-bold">Peso (kg)</label><input type="number" step="0.1" name="peso" class="form-control" value="{{ a.peso }}"></div>
+                                        <div class="col-md-4"><label class="small fw-bold">Altura (cm)</label><input type="number" name="altura" class="form-control" value="{{ a.altura }}"></div>
+                                        <div class="col-md-6"><label class="small fw-bold">Patologías / Cirugías</label><textarea name="patologias_cirugias" class="form-control" rows="2">{{ a.patologias_cirugias }}</textarea></div>
+                                        <div class="col-md-6"><label class="small fw-bold">Observaciones</label><textarea name="observaciones" class="form-control" rows="2">{{ a.observaciones }}</textarea></div>
+                                        <div class="col-md-6"><label class="small fw-bold">Obra Social</label><input type="text" name="obra_social" class="form-control" value="{{ a.obra_social }}"></div>
+                                        <div class="col-md-6"><label class="small fw-bold">Médico Cabecera</label><input type="text" name="medico_cabecera" class="form-control" value="{{ a.medico_cabecera }}"></div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-0">
+                                    <button type="submit" class="btn btn-primary w-100 fw-bold">GUARDAR CAMBIOS</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
-<div class="modal fade" id="modalAlumno" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="modalNuevo" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0">
             <form action="/agregar_alumno" method="POST">
-                <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title fw-bold">Ficha Médica / Nuevo Alumno</h5>
+                <div class="modal-header bg-dark text-white py-2">
+                    <h6 class="modal-title fw-bold">Registrar Nuevo Alumno</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Nombre</label>
-                            <input type="text" name="nombre" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Apellido</label>
-                            <input type="text" name="apellido" class="form-control" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">DNI</label>
-                            <input type="text" name="dni" class="form-control">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Teléfono</label>
-                            <input type="text" name="telefono" class="form-control">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Fecha Nac.</label>
-                            <input type="date" name="fecha_nacimiento" class="form-control">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">Domicilio</label>
-                            <input type="text" name="domicilio" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Contacto Emergencia</label>
-                            <input type="text" name="contacto_emergencia" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">Peso (kg)</label>
-                            <input type="text" name="peso" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">Altura (cm)</label>
-                            <input type="text" name="altura" class="form-control">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">Patologías / Cirugías</label>
-                            <textarea name="patologias_cirugias" class="form-control" rows="2"></textarea>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Obra Social</label>
-                            <input type="text" name="obra_social" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Médico Cabecera</label>
-                            <input type="text" name="medico_cabecera" class="form-control">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">Observaciones Generales</label>
-                            <textarea name="observaciones" class="form-control" rows="2"></textarea>
-                        </div>
+                        <div class="col-md-6"><label class="small fw-bold">Nombre</label><input type="text" name="nombre" class="form-control" required></div>
+                        <div class="col-md-6"><label class="small fw-bold">Apellido</label><input type="text" name="apellido" class="form-control" required></div>
+                        <div class="col-md-4"><label class="small fw-bold">DNI</label><input type="text" name="dni" class="form-control"></div>
+                        <div class="col-md-4"><label class="small fw-bold">Teléfono</label><input type="text" name="telefono" class="form-control"></div>
+                        <div class="col-md-4"><label class="small fw-bold">Emergencias</label><input type="text" name="contacto_emergencia" class="form-control"></div>
+                        <div class="col-md-12"><label class="small fw-bold">Domicilio</label><input type="text" name="domicilio" class="form-control"></div>
+                        <div class="col-md-4"><label class="small fw-bold">Nacimiento</label><input type="date" name="fecha_nacimiento" class="form-control"></div>
+                        <div class="col-md-4"><label class="small fw-bold">Peso</label><input type="number" step="0.1" name="peso" class="form-control"></div>
+                        <div class="col-md-4"><label class="small fw-bold">Altura</label><input type="number" name="altura" class="form-control"></div>
+                        <div class="col-md-6"><label class="small fw-bold">Patologías</label><textarea name="patologias_cirugias" class="form-control" rows="2"></textarea></div>
+                        <div class="col-md-6"><label class="small fw-bold">Observaciones</label><textarea name="observaciones" class="form-control" rows="2"></textarea></div>
+                        <div class="col-md-6"><label class="small fw-bold">Obra Social</label><input type="text" name="obra_social" class="form-control"></div>
+                        <div class="col-md-6"><label class="small fw-bold">Médico</label><input type="text" name="medico_cabecera" class="form-control"></div>
                     </div>
                 </div>
                 <div class="modal-footer border-0">
-                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">GUARDAR ALUMNO</button>
+                    <button type="submit" class="btn btn-dark w-100 fw-bold">CARGAR FICHA</button>
                 </div>
             </form>
         </div>
