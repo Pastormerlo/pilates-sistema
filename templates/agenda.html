@@ -12,54 +12,58 @@
     .col-hora { width: 60px !important; background-color: #f8f9fa; }
     
     .celda-turno {
-        height: 110px;
         vertical-align: top;
         background-color: #ffffff;
         border: 1px solid #f0f0f0;
-        padding: 2px !important;
+        padding: 0 !important; /* Quitamos padding para que el desplegable ocupe todo */
     }
 
-    .box-completo {
-        background-color: #198754;
-        color: white;
-        font-size: 0.7rem;
+    /* Estilo del Desplegable */
+    details {
+        width: 100%;
+        cursor: pointer;
+    }
+    summary {
+        padding: 10px 5px;
+        font-size: 0.75rem;
         font-weight: bold;
         text-align: center;
-        padding: 15px 5px;
-        border-radius: 4px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        height: 100%;
+        list-style: none; /* Quita la flechita por defecto */
+        transition: background 0.3s;
+    }
+    summary::-webkit-details-marker { display: none; } /* Quita flecha en Safari */
+
+    /* Colores según estado */
+    .turno-vacio { color: #adb5bd; }
+    .turno-con-gente { background-color: #e7f1ff; color: #0d6efd; }
+    .turno-completo { background-color: #198754; color: white; }
+
+    .lista-desplegada {
+        padding: 5px;
+        background-color: white;
+        border-top: 1px solid #eee;
     }
 
     .alumno-chip {
         font-size: 0.65rem;
-        padding: 2px 5px;
-        background-color: #f0f7ff;
-        border-left: 3px solid #0d6efd;
-        border-radius: 2px;
+        padding: 3px 6px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 3px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        color: #084298;
-        margin-bottom: 2px;
+        margin-bottom: 3px;
     }
-    .cupo-indicador {
-        font-size: 0.6rem;
-        color: #6c757d;
-        text-align: center;
-        margin-top: 4px;
-        font-weight: bold;
-    }
+    .alumno-chip:hover { background-color: #e9ecef; }
 </style>
 
 <div class="card border-0 shadow-sm mb-3 no-print">
     <div class="card-body p-2 px-3 d-flex justify-content-between align-items-center">
-        <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-check me-2 text-success"></i>Control de Cupos</h6>
+        <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-list-ul me-2 text-primary"></i>Agenda Compacta</h6>
         <div class="btn-group shadow-sm">
             <a href="/agenda?fecha={{ (inicio - timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light btn-sm border"><i class="fas fa-chevron-left"></i></a>
-            <span class="btn btn-light btn-sm border fw-bold small">{{ inicio.strftime('%d/%m') }}</span>
+            <span class="btn btn-light btn-sm border fw-bold small text-primary">{{ inicio.strftime('%d/%m') }}</span>
             <a href="/agenda?fecha={{ (inicio + timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light btn-sm border"><i class="fas fa-chevron-right"></i></a>
         </div>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTurno">
@@ -83,7 +87,6 @@
                 {% for dia in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}
                     <td class="celda-turno drop-zone" data-dia="{{ dia }}" data-hora="{{ h }}">
                         
-                        {# Filtramos los alumnos para esta hora y día directamente #}
                         {% set alumnos_en_este_turno = [] %}
                         {% for t in turnos %}
                             {% set hora_turno = t.hora.strftime('%H:%M') if t.hora.strftime else t.hora %}
@@ -92,27 +95,32 @@
                             {% endif %}
                         {% endfor %}
 
-                        {% if alumnos_en_este_turno|length >= 6 %}
-                            <div class="box-completo">
-                                <i class="fas fa-users"></i>
-                                CUPO COMPLETO
-                                <div style="font-size: 0.6rem; opacity: 0.8;">(6 de 6)</div>
+                        {% set cant = alumnos_en_este_turno|length %}
+
+                        <details>
+                            <summary class="{% if cant == 0 %}turno-vacio{% elif cant >= 6 %}turno-completo{% else %}turno-con-gente{% endif %}">
+                                {% if cant == 0 %}
+                                    <small>Vacío</small>
+                                {% elif cant >= 6 %}
+                                    <i class="fas fa-check-circle me-1"></i> COMPLETO
+                                {% else %}
+                                    {{ cant }} Alumno{% if cant > 1 %}s{% endif %}
+                                {% endif %}
+                            </summary>
+                            
+                            <div class="lista-desplegada">
+                                {% if cant > 0 %}
+                                    {% for t in alumnos_en_este_turno %}
+                                    <div class="alumno-chip draggable" draggable="true" data-id="{{ t.id }}">
+                                        <span class="text-truncate">{{ t.apellido }}</span>
+                                        <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger ms-1" style="text-decoration:none;">×</a>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="text-center py-2 text-muted" style="font-size: 0.6rem;">Sin alumnos</div>
+                                {% endif %}
                             </div>
-                        {% else %}
-                            <div class="lista-alumnos">
-                                {% for t in alumnos_en_este_turno %}
-                                <div class="alumno-chip draggable" draggable="true" data-id="{{ t.id }}">
-                                    <span class="text-truncate">{{ t.apellido }}</span>
-                                    <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger" style="text-decoration:none;">×</a>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% if alumnos_en_este_turno|length > 0 %}
-                                <div class="cupo-indicador text-uppercase">
-                                    {{ 6 - alumnos_en_este_turno|length }} LIBRES
-                                </div>
-                            {% endif %}
-                        {% endif %}
+                        </details>
                     </td>
                 {% endfor %}
             </tr>
