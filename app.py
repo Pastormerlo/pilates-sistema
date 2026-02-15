@@ -18,7 +18,7 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 def conectar():
     uri = DATABASE_URL
     if uri and uri.startswith("postgres://"):
-        uri = uri.replace("postgres://", "postgresql://", 1)
+        uri = uri.replace("postgres://", "postgres://", 1) # Asegurar compatibilidad
     return psycopg2.connect(uri, cursor_factory=RealDictCursor)
 
 def login_required(f):
@@ -92,7 +92,7 @@ def eliminar_alumno(id):
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- AGENDA (COMPACTA + MOVIL) ---
+# --- AGENDA ---
 @app.route('/agenda')
 @login_required
 def agenda():
@@ -157,22 +157,35 @@ def mover_turno():
     conn.close()
     return jsonify(status="ok")
 
-# --- FACTURACIÓN (CON IMPRESIÓN) ---
+# --- FACTURACIÓN (FILTRO POR MES) ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
+    mes_filtro = request.args.get('mes_filtro')
     conn = conectar()
     cur = conn.cursor()
     cur.execute("SELECT id, nombre, apellido FROM alumnos ORDER BY apellido ASC")
     alumnos_cobro = cur.fetchall()
-    cur.execute("""
-        SELECT p.*, a.nombre || ' ' || a.apellido as alumno_nombre 
-        FROM pagos p JOIN alumnos a ON p.alumno_id = a.id 
-        ORDER BY p.fecha DESC LIMIT 100
-    """)
+    
+    if mes_filtro and mes_filtro != "Todos":
+        # Filtramos por el texto del mes que guardamos en el concepto
+        cur.execute("""
+            SELECT p.*, a.nombre || ' ' || a.apellido as alumno_nombre 
+            FROM pagos p JOIN alumnos a ON p.alumno_id = a.id 
+            WHERE p.concepto LIKE %s
+            ORDER BY p.fecha DESC
+        """, (f"%{mes_filtro}%",))
+    else:
+        cur.execute("""
+            SELECT p.*, a.nombre || ' ' || a.apellido as alumno_nombre 
+            FROM pagos p JOIN alumnos a ON p.alumno_id = a.id 
+            ORDER BY p.fecha DESC LIMIT 100
+        """)
+        
     pagos = cur.fetchall()
     conn.close()
-    return render_template('facturacion.html', alumnos=alumnos_cobro, pagos=pagos, datetime=datetime)
+    return render_template('facturacion.html', alumnos=alumnos_cobro, pagos=pagos, 
+                           datetime=datetime, mes_seleccionado=mes_filtro)
 
 @app.route('/registrar_pago', methods=['POST'])
 @login_required
