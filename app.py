@@ -48,7 +48,7 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- ALUMNOS ---
+# --- SECCIÓN ALUMNOS (13 CAMPOS) ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -82,7 +82,17 @@ def agregar_alumno():
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- AGENDA ---
+@app.route('/eliminar_alumno/<int:id>')
+@login_required
+def eliminar_alumno(id):
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM alumnos WHERE id = %s", (id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('alumnos'))
+
+# --- SECCIÓN AGENDA ---
 @app.route('/agenda')
 @login_required
 def agenda():
@@ -147,7 +157,7 @@ def mover_turno():
     conn.close()
     return jsonify(status="ok")
 
-# --- FACTURACIÓN ---
+# --- SECCIÓN FACTURACIÓN ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
@@ -167,13 +177,15 @@ def facturacion():
 @app.route('/registrar_pago', methods=['POST'])
 @login_required
 def registrar_pago():
+    alumno_id = request.form.get('alumno_id')
+    monto = request.form.get('monto')
     concepto_final = f"{request.form.get('concepto')} - {request.form.get('mes')}"
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO pagos (alumno_id, monto, concepto, estado, fecha) 
         VALUES (%s, %s, %s, 'Pagado', CURRENT_DATE)
-    """, (request.form.get('alumno_id'), request.form.get('monto'), concepto_final))
+    """, (alumno_id, monto, concepto_final))
     conn.commit()
     conn.close()
     return redirect(url_for('facturacion'))
