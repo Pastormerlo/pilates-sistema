@@ -29,7 +29,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- RUTAS DE ACCESO, ALUMNOS Y AGENDA SE MANTIENEN IGUAL ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -49,15 +48,16 @@ def logout():
 def index():
     return render_template('index.html')
 
+# --- ALUMNOS ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
     conn = conectar()
     cur = conn.cursor()
     cur.execute("SELECT * FROM alumnos ORDER BY apellido ASC, nombre ASC")
-    alumnos = cur.fetchall()
+    alumnos_data = cur.fetchall()
     conn.close()
-    return render_template('alumnos.html', alumnos=alumnos)
+    return render_template('alumnos.html', alumnos=alumnos_data)
 
 @app.route('/agregar_alumno', methods=['POST'])
 @login_required
@@ -82,6 +82,7 @@ def agregar_alumno():
     conn.close()
     return redirect(url_for('alumnos'))
 
+# --- AGENDA ---
 @app.route('/agenda')
 @login_required
 def agenda():
@@ -90,6 +91,7 @@ def agenda():
     inicio_semana = (fecha_actual - timedelta(days=fecha_actual.weekday())).date()
     fin_semana = inicio_semana + timedelta(days=5)
     horarios_fijos = [f"{h:02d}:00" for h in range(8, 22)]
+    
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
@@ -101,7 +103,9 @@ def agenda():
     cur.execute("SELECT id, nombre, apellido FROM alumnos ORDER BY apellido ASC")
     alumnos_list = cur.fetchall()
     conn.close()
-    return render_template('agenda.html', turnos=turnos, alumnos=alumnos_list, inicio=inicio_semana, fin=fin_semana, horarios=horarios_fijos, timedelta=timedelta)
+    return render_template('agenda.html', turnos=turnos, alumnos=alumnos_list, 
+                           inicio=inicio_semana, fin=fin_semana, 
+                           horarios=horarios_fijos, timedelta=timedelta)
 
 @app.route('/agregar_turno', methods=['POST'])
 @login_required
@@ -143,7 +147,7 @@ def mover_turno():
     conn.close()
     return jsonify(status="ok")
 
-# --- FACTURACIÓN (Actualizada con Mes y Borrado) ---
+# --- FACTURACIÓN ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
@@ -163,8 +167,6 @@ def facturacion():
 @app.route('/registrar_pago', methods=['POST'])
 @login_required
 def registrar_pago():
-    # Concatenamos Concepto + Mes para el campo concepto en DB o podrías usar campos separados.
-    # Para no complicar la DB actual, guardaremos "Cuota Mensual (Febrero)" en concepto.
     concepto_final = f"{request.form.get('concepto')} - {request.form.get('mes')}"
     conn = conectar()
     cur = conn.cursor()
