@@ -48,7 +48,7 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- ALUMNOS ---
+# --- ALUMNOS (13 CAMPOS) ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -92,18 +92,20 @@ def eliminar_alumno(id):
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- AGENDA PERMANENTE ---
+# --- AGENDA PERMANENTE CON NAVEGACIÓN ---
 @app.route('/agenda')
 @login_required
 def agenda():
     fecha_str = request.args.get('fecha')
     fecha_actual = datetime.strptime(fecha_str, '%Y-%m-%d') if fecha_str else datetime.now()
+    # Calculamos inicio y fin de semana para la visualización
     inicio_semana = (fecha_actual - timedelta(days=fecha_actual.weekday())).date()
     fin_semana = inicio_semana + timedelta(days=5)
     horarios_fijos = [f"{h:02d}:00" for h in range(8, 22)]
     
     conn = conectar()
     cur = conn.cursor()
+    # Traemos turnos fijos (se repiten siempre)
     cur.execute("""
         SELECT t.*, a.nombre, a.apellido FROM turnos t 
         JOIN alumnos a ON t.alumno_id = a.id 
@@ -150,7 +152,7 @@ def eliminar_turno(id):
     conn.close()
     return redirect(url_for('agenda', fecha=fecha_ref))
 
-# --- FACTURACIÓN ---
+# --- FACTURACIÓN (FILTROS + IMPRESIÓN) ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
@@ -172,7 +174,6 @@ def facturacion():
             FROM pagos p JOIN alumnos a ON p.alumno_id = a.id 
             ORDER BY p.fecha DESC LIMIT 100
         """)
-        
     pagos = cur.fetchall()
     conn.close()
     return render_template('facturacion.html', alumnos=alumnos_cobro, pagos=pagos, 
