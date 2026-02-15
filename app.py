@@ -48,7 +48,7 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- ALUMNOS (13 CAMPOS) ---
+# --- GESTIÓN DE ALUMNOS ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -82,6 +82,32 @@ def agregar_alumno():
     conn.close()
     return redirect(url_for('alumnos'))
 
+@app.route('/editar_alumno/<int:id>', methods=['POST'])
+@login_required
+def editar_alumno(id):
+    datos = (
+        request.form.get('nombre'), request.form.get('apellido'),
+        request.form.get('dni'), request.form.get('domicilio'),
+        request.form.get('telefono'), request.form.get('contacto_emergencia'),
+        request.form.get('fecha_nacimiento') or None,
+        request.form.get('peso') or None, request.form.get('altura') or None,
+        request.form.get('patologias_cirugias'), request.form.get('obra_social'),
+        request.form.get('medico_cabecera'), request.form.get('observaciones'),
+        id
+    )
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE alumnos SET 
+        nombre=%s, apellido=%s, dni=%s, domicilio=%s, telefono=%s, contacto_emergencia=%s, 
+        fecha_nacimiento=%s, peso=%s, altura=%s, patologias_cirugias=%s, obra_social=%s, 
+        medico_cabecera=%s, observaciones=%s 
+        WHERE id=%s
+    """, datos)
+    conn.commit()
+    conn.close()
+    return redirect(url_for('alumnos'))
+
 @app.route('/eliminar_alumno/<int:id>')
 @login_required
 def eliminar_alumno(id):
@@ -92,20 +118,18 @@ def eliminar_alumno(id):
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- AGENDA PERMANENTE CON NAVEGACIÓN ---
+# --- AGENDA PERMANENTE ---
 @app.route('/agenda')
 @login_required
 def agenda():
     fecha_str = request.args.get('fecha')
     fecha_actual = datetime.strptime(fecha_str, '%Y-%m-%d') if fecha_str else datetime.now()
-    # Calculamos inicio y fin de semana para la visualización
     inicio_semana = (fecha_actual - timedelta(days=fecha_actual.weekday())).date()
     fin_semana = inicio_semana + timedelta(days=5)
     horarios_fijos = [f"{h:02d}:00" for h in range(8, 22)]
     
     conn = conectar()
     cur = conn.cursor()
-    # Traemos turnos fijos (se repiten siempre)
     cur.execute("""
         SELECT t.*, a.nombre, a.apellido FROM turnos t 
         JOIN alumnos a ON t.alumno_id = a.id 
@@ -124,8 +148,8 @@ def agenda():
 def agregar_turno():
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("INSERT INTO turnos (alumno_id, dia_semana, hora, observaciones) VALUES (%s, %s, %s, %s)",
-               (request.form.get('alumno_id'), request.form.get('dia_semana'), request.form.get('hora'), request.form.get('observaciones')))
+    cur.execute("INSERT INTO turnos (alumno_id, dia_semana, hora) VALUES (%s, %s, %s)",
+               (request.form.get('alumno_id'), request.form.get('dia_semana'), request.form.get('hora')))
     conn.commit()
     conn.close()
     return redirect(url_for('agenda', fecha=request.form.get('fecha_inicio')))
@@ -136,7 +160,8 @@ def mover_turno():
     data = request.json
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("UPDATE turnos SET dia_semana=%s WHERE id=%s", (data.get('dia_semana'), data.get('id')))
+    cur.execute("UPDATE turnos SET dia_semana=%s, hora=%s WHERE id=%s", 
+               (data.get('dia_semana'), data.get('hora'), data.get('id')))
     conn.commit()
     conn.close()
     return jsonify(status="ok")
@@ -152,7 +177,7 @@ def eliminar_turno(id):
     conn.close()
     return redirect(url_for('agenda', fecha=fecha_ref))
 
-# --- FACTURACIÓN (FILTROS + IMPRESIÓN) ---
+# --- FACTURACIÓN ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
@@ -189,16 +214,6 @@ def registrar_pago():
         INSERT INTO pagos (alumno_id, monto, concepto, estado, fecha) 
         VALUES (%s, %s, %s, 'Pagado', CURRENT_DATE)
     """, (request.form.get('alumno_id'), request.form.get('monto'), concepto_final))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('facturacion'))
-
-@app.route('/eliminar_pago/<int:id>')
-@login_required
-def eliminar_pago(id):
-    conn = conectar()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM pagos WHERE id = %s", (id,))
     conn.commit()
     conn.close()
     return redirect(url_for('facturacion'))
