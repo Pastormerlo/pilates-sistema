@@ -1,55 +1,72 @@
 {% extends 'layout.html' %}
 {% block content %}
+<style>
+    /* Estilo ultra compacto para los turnos */
+    .turno-compacto {
+        padding: 6px 10px !important;
+        margin-bottom: 5px !important;
+        font-size: 0.85rem !important;
+        border-left: 4px solid #0d6efd !important; /* Una barrita de color para distinguir */
+    }
+    .turno-info {
+        line-height: 1.2;
+    }
+    .turno-hora {
+        font-size: 0.75rem;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    .drop-zone {
+        min-height: 200px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+</style>
+
 <div class="card border-0 shadow-sm mb-3">
-    <div class="card-body p-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-alt me-2 text-primary"></i>Agenda Permanente</h5>
-            <button class="btn btn-primary btn-sm px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTurno">
-                <i class="fas fa-plus me-1"></i> Asignar Fijo
+    <div class="card-body p-2 px-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-alt me-2 text-primary"></i>Agenda Permanente</h6>
+            <button class="btn btn-primary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTurno">
+                <i class="fas fa-plus"></i>
             </button>
         </div>
         
         <div class="row align-items-center g-2">
-            <div class="col-12 col-md-6 offset-md-3">
+            <div class="col-12">
                 <div class="btn-group w-100 shadow-sm">
-                    <a href="/agenda?fecha={{ (inicio - timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-white border border-end-0">
+                    <a href="/agenda?fecha={{ (inicio - timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-white btn-sm border border-end-0">
                         <i class="fas fa-chevron-left"></i>
                     </a>
-                    <div class="btn btn-white border d-flex align-items-center justify-content-center fw-bold text-primary flex-grow-1 px-1">
-                         Semana {{ inicio.strftime('%d/%m') }} al {{ fin.strftime('%d/%m') }}
+                    <div class="btn btn-white btn-sm border d-flex align-items-center justify-content-center fw-bold text-primary flex-grow-1" style="font-size: 0.8rem;">
+                         {{ inicio.strftime('%d/%m') }} - {{ fin.strftime('%d/%m') }}
                     </div>
-                    <a href="/agenda?fecha={{ (inicio + timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-white border border-start-0">
+                    <a href="/agenda?fecha={{ (inicio + timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-white btn-sm border border-start-0">
                         <i class="fas fa-chevron-right"></i>
                     </a>
                 </div>
-            </div>
-            <div class="col-12 text-center">
-                <a href="/agenda" class="btn btn-sm btn-link text-decoration-none">Volver a Hoy</a>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-    {% set dias_nombres = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}
+<div class="row row-cols-1 row-cols-md-3 row-cols-xl-6 g-2"> {% set dias_nombres = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] %}
     {% for dia in dias_nombres %}
     <div class="col">
         <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-dark text-white py-2 text-center small fw-bold">{{ dia }}</div>
-            <div class="card-body p-2 bg-light drop-zone" style="min-height: 180px;" data-dia="{{ dia }}">
+            <div class="card-header bg-dark text-white py-1 text-center small fw-bold" style="font-size: 0.75rem;">{{ dia | upper }}</div>
+            <div class="card-body p-1 drop-zone" data-dia="{{ dia }}">
                 {% for t in turnos %}
                     {% if t.dia_semana == dia %}
-                    <div class="bg-white border rounded p-3 mb-2 shadow-sm d-flex justify-content-between align-items-center draggable" 
+                    <div class="bg-white border rounded shadow-sm d-flex justify-content-between align-items-center draggable turno-compacto" 
                          draggable="true" data-id="{{ t.id }}" style="cursor: grab;">
-                        <div>
-                            <span class="d-block fw-bold text-dark small">{{ t.nombre }} {{ t.apellido }}</span>
-                            <span class="badge bg-primary bg-opacity-10 text-primary small">
-                                <i class="far fa-clock me-1"></i>{{ t.hora.strftime('%H:%M') if t.hora.strftime else t.hora }} hs
-                            </span>
+                        <div class="turno-info">
+                            <span class="d-block fw-bold text-dark text-uppercase" style="font-size: 0.75rem;">{{ t.apellido }}</span>
+                            <span class="turno-hora">{{ t.hora.strftime('%H:%M') if t.hora.strftime else t.hora }} hs</span>
                         </div>
                         <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" 
-                           class="text-danger p-2" onclick="return confirm('¿Quitar alumno del horario fijo?')">
-                            <i class="fas fa-trash-alt"></i>
+                           class="text-danger opacity-50" onclick="return confirm('¿Quitar?')">
+                            <i class="fas fa-times" style="font-size: 0.8rem;"></i>
                         </a>
                     </div>
                     {% endif %}
@@ -61,38 +78,38 @@
 </div>
 
 <div class="modal fade" id="modalTurno" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content border-0">
             <form action="/agregar_turno" method="POST">
                 <input type="hidden" name="fecha_inicio" value="{{ inicio.strftime('%Y-%m-%d') }}">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title fw-bold">Nuevo Horario Semanal</h5>
+                <div class="modal-header bg-primary text-white py-2">
+                    <h6 class="modal-title fw-bold">Nuevo Turno Fijo</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Seleccionar Alumno</label>
-                        <select name="alumno_id" class="form-select border-2" required>
+                <div class="modal-body p-3">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Alumno</label>
+                        <select name="alumno_id" class="form-select form-select-sm" required>
                             {% for a in alumnos %}<option value="{{ a.id }}">{{ a.apellido }}, {{ a.nombre }}</option>{% endfor %}
                         </select>
                     </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
+                    <div class="row g-2">
+                        <div class="col-6 mb-2">
                             <label class="form-label small fw-bold">Día</label>
-                            <select name="dia_semana" class="form-select border-2">
+                            <select name="dia_semana" class="form-select form-select-sm">
                                 {% for d in dias_nombres %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
                             </select>
                         </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label small fw-bold">Horario</label>
-                            <select name="hora" class="form-select border-2">
+                        <div class="col-6 mb-2">
+                            <label class="form-label small fw-bold">Hora</label>
+                            <select name="hora" class="form-select form-select-sm">
                                 {% for h in horarios %}<option value="{{ h }}">{{ h }} hs</option>{% endfor %}
                             </select>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">ASIGNAR A LA GRILLA</button>
+                <div class="modal-footer border-0 p-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">GUARDAR</button>
                 </div>
             </form>
         </div>
@@ -123,5 +140,5 @@
         });
     });
 </script>
-<style>.dragging { opacity: 0.5; }</style>
+<style>.dragging { opacity: 0.3; }</style>
 {% endblock %}
