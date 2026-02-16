@@ -1,100 +1,96 @@
 {% extends 'layout.html' %}
 {% block content %}
 <style>
-    /* --- OPTIMIZACIÓN VISTA PC (GRILLA) --- */
+    /* --- VISTA PC --- */
     @media (min-width: 768px) {
         .table-agenda { 
             table-layout: fixed; 
             width: 100%; 
             border-collapse: separate; 
             border-spacing: 0;
-            border: 1px solid #dee2e6;
             display: table;
         }
         .table-agenda th {
             background-color: #212529 !important;
             color: white;
             text-align: center;
-            padding: 12px 5px;
+            padding: 10px;
             font-size: 0.8rem;
-            border: 1px solid #373b3e;
+            border: 1px solid #343a40;
         }
         .table-agenda td {
-            border: 1px solid #ebebeb;
-            height: 100px; /* Altura fija para que sea una grilla real */
+            border: 1px solid #dee2e6;
+            height: 110px;
             vertical-align: top;
             padding: 0 !important;
         }
         .col-hora { 
-            width: 70px; 
+            width: 75px; 
             background-color: #f8f9fa !important; 
             font-weight: bold;
             text-align: center;
             vertical-align: middle !important;
+            font-size: 0.8rem;
         }
-        /* Efecto Cebra para no marearse */
-        tr:nth-child(even) td:not(.col-hora) { background-color: #fafafa; }
-        
+        tr:nth-child(even) td:not(.col-hora) { background-color: #fdfdfd; }
         .vista-celu { display: none; }
     }
 
-    /* --- OPTIMIZACIÓN VISTA CELULAR (LISTA) --- */
+    /* --- VISTA CELULAR --- */
     @media (max-width: 767px) {
         .table-agenda { display: none; } 
         .vista-celu { display: block; }
-        .dia-card { margin-bottom: 20px; border-radius: 10px; overflow: hidden; border: 1px solid #dee2e6; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .dia-header { background: #0d6efd; color: white; padding: 12px; font-weight: bold; text-align: center; font-size: 1.1rem; }
-        .hora-row { display: flex; padding: 12px; border-bottom: 1px solid #eee; background: white; }
-        .hora-label { width: 60px; font-weight: bold; color: #495057; }
+        .dia-card { margin-bottom: 20px; border-radius: 10px; overflow: hidden; border: 1px solid #dee2e6; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .dia-header { background: #212529; color: white; padding: 12px; font-weight: bold; text-align: center; }
+        .hora-row { display: flex; padding: 12px; border-bottom: 1px solid #eee; background: white; align-items: flex-start; }
+        .hora-label { width: 60px; font-weight: bold; color: #495057; padding-top: 5px; }
     }
 
-    /* --- ESTILOS DE CHIPS Y DESPLEGABLES --- */
+    /* CHIPS Y DETALLES */
     details { width: 100%; height: 100%; }
     summary {
         list-style: none;
-        padding: 8px 4px;
+        padding: 6px;
         cursor: pointer;
         text-align: center;
         font-weight: bold;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
     summary::-webkit-details-marker { display: none; }
 
     .alumno-chip {
         font-size: 0.75rem;
-        padding: 4px 8px;
-        margin: 2px 4px;
-        background: #ffffff;
-        border: 1px solid #dee2e6;
+        padding: 5px 8px;
+        margin: 2px 5px;
+        background: #fff;
+        border: 1px solid #ddd;
         border-left: 3px solid #0d6efd;
-        border-radius: 3px;
+        border-radius: 4px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        box-shadow: 1px 1px 2px rgba(0,0,0,0.02);
     }
     
-    /* Colores por estado de cupo */
-    .cupo-vacio { color: #ced4da; }
+    .cupo-vacio { color: #adb5bd; }
     .cupo-medio { color: #0d6efd; background: #e7f1ff; }
-    .cupo-lleno { color: #ffffff; background: #198754; }
+    .cupo-lleno { color: #fff; background: #198754; }
 </style>
 
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body p-2 px-3 d-flex justify-content-between align-items-center">
-        <h5 class="fw-bold mb-0 text-dark d-none d-md-block">Agenda de Clases</h5>
+        <h6 class="fw-bold mb-0 text-dark d-none d-md-block"><i class="fas fa-calendar-alt me-2 text-primary"></i>Agenda Semanal</h6>
         <div class="btn-group shadow-sm">
             <a href="/agenda?fecha={{ (inicio - timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light btn-sm border"><i class="fas fa-chevron-left"></i></a>
-            <span class="btn btn-white btn-sm border fw-bold text-primary">{{ inicio.strftime('%d/%m') }} al {{ fin.strftime('%d/%m') }}</span>
+            <span class="btn btn-white btn-sm border fw-bold text-primary small">{{ inicio.strftime('%d/%m') }} al {{ fin.strftime('%d/%m') }}</span>
             <a href="/agenda?fecha={{ (inicio + timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light btn-sm border"><i class="fas fa-chevron-right"></i></a>
         </div>
-        <button class="btn btn-primary btn-sm px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalTurno">
-            <i class="fas fa-plus me-1"></i> NUEVO TURNO
+        <button class="btn btn-primary btn-sm px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTurno">
+            <i class="fas fa-plus me-1"></i> NUEVO
         </button>
     </div>
 </div>
 
-<div class="table-responsive d-none d-md-block shadow-sm rounded">
+<div class="table-responsive d-none d-md-block shadow-sm rounded border">
     <table class="table table-agenda mb-0 bg-white">
         <thead>
             <tr>
@@ -110,16 +106,15 @@
                     <td class="drop-zone" data-dia="{{ dia }}" data-hora="{{ h }}">
                         {% set alumnos_turno = [] %}
                         {% for t in turnos %}{% if t.dia_semana == dia and (t.hora.strftime('%H:%M') if t.hora.strftime else t.hora) == h %}{% set _ = alumnos_turno.append(t) %}{% endif %}{% endfor %}
-                        
                         {% set cant = alumnos_turno|length %}
                         <details {% if cant > 0 %}open{% endif %}>
                             <summary class="{% if cant >= 6 %}cupo-lleno{% elif cant > 0 %}cupo-medio{% else %}cupo-vacio{% endif %}">
-                                {% if cant >= 6 %}LLENO{% elif cant > 0 %}{{ cant }} / 6{% else %}-{% endif %}
+                                {% if cant >= 6 %}LLENO{% elif cant > 0 %}{{ cant }}/6{% else %}-{% endif %}
                             </summary>
-                            <div class="lista-alumnos">
+                            <div class="p-1">
                                 {% for t in alumnos_turno %}
                                 <div class="alumno-chip draggable" draggable="true" data-id="{{ t.id }}">
-                                    <span class="text-truncate" title="{{ t.apellido }}">{{ t.apellido }}</span>
+                                    <span class="text-truncate">{{ t.apellido }}</span>
                                     <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger ms-1" style="text-decoration:none;">×</a>
                                 </div>
                                 {% endfor %}
@@ -140,7 +135,6 @@
         {% for h in horarios %}
             {% set alumnos_turno = [] %}
             {% for t in turnos %}{% if t.dia_semana == dia and (t.hora.strftime('%H:%M') if t.hora.strftime else t.hora) == h %}{% set _ = alumnos_turno.append(t) %}{% endif %}{% endfor %}
-            
             {% if alumnos_turno|length > 0 %}
             <div class="hora-row">
                 <div class="hora-label">{{ h }}</div>
@@ -165,7 +159,7 @@
         <div class="modal-content border-0">
             <form action="/agregar_turno" method="POST">
                 <input type="hidden" name="fecha_inicio" value="{{ inicio.strftime('%Y-%m-%d') }}">
-                <div class="modal-header bg-dark text-white py-2">
+                <div class="modal-header bg-primary text-white py-2">
                     <h6 class="modal-title fw-bold">Asignar Turno</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
