@@ -14,7 +14,7 @@ app.secret_key = 'mauro_pilates_2026_pro_max'
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # Max 2MB
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -38,7 +38,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- SISTEMA DE ACCESO ---
+# --- SISTEMA DE ACCESO Y PERFIL ---
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if request.method == 'POST':
@@ -108,7 +108,7 @@ def perfil():
 def index():
     return render_template('index.html')
 
-# --- ALUMNOS (13 CAMPOS) ---
+# --- ALUMNOS ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
@@ -169,7 +169,7 @@ def eliminar_alumno(id):
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- AGENDA DUAL (L-V) ---
+# --- AGENDA ---
 @app.route('/agenda')
 @login_required
 def agenda():
@@ -211,7 +211,7 @@ def eliminar_turno(id):
     conn.close()
     return redirect(url_for('agenda', fecha=fecha_ref))
 
-# --- FACTURACIÓN ---
+# --- FACTURACIÓN Y PAGOS ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
@@ -239,6 +239,16 @@ def registrar_pago():
     cur = conn.cursor()
     cur.execute("INSERT INTO pagos (alumno_id, monto, concepto, estado, fecha, user_id) VALUES (%s, %s, %s, 'Pagado', CURRENT_DATE, %s)",
                (request.form.get('alumno_id'), request.form.get('monto'), concepto_final, session['user_id']))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('facturacion'))
+
+@app.route('/eliminar_pago/<int:id>')
+@login_required
+def eliminar_pago(id):
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM pagos WHERE id = %s AND user_id = %s", (id, session['user_id']))
     conn.commit()
     conn.close()
     return redirect(url_for('facturacion'))
