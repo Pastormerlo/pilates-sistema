@@ -47,18 +47,10 @@
                     <form class="d-flex gap-2">
                         <select name="mes_filtro" class="form-select form-select-sm" onchange="this.form.submit()">
                             <option value="Todos">Todos los meses</option>
-                            <option {% if mes_seleccionado == 'Enero' %}selected{% endif %}>Enero</option>
-                            <option {% if mes_seleccionado == 'Febrero' %}selected{% endif %}>Febrero</option>
-                            <option {% if mes_seleccionado == 'Marzo' %}selected{% endif %}>Marzo</option>
-                            <option {% if mes_seleccionado == 'Abril' %}selected{% endif %}>Abril</option>
-                            <option {% if mes_seleccionado == 'Mayo' %}selected{% endif %}>Mayo</option>
-                            <option {% if mes_seleccionado == 'Junio' %}selected{% endif %}>Junio</option>
-                            <option {% if mes_seleccionado == 'Julio' %}selected{% endif %}>Julio</option>
-                            <option {% if mes_seleccionado == 'Agosto' %}selected{% endif %}>Agosto</option>
-                            <option {% if mes_seleccionado == 'Septiembre' %}selected{% endif %}>Septiembre</option>
-                            <option {% if mes_seleccionado == 'Octubre' %}selected{% endif %}>Octubre</option>
-                            <option {% if mes_seleccionado == 'Noviembre' %}selected{% endif %}>Noviembre</option>
-                            <option {% if mes_seleccionado == 'Diciembre' %}selected{% endif %}>Diciembre</option>
+                            {% set meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'] %}
+                            {% for m in meses %}
+                                <option {% if mes_seleccionado == m %}selected{% endif %}>{{ m }}</option>
+                            {% endfor %}
                         </select>
                     </form>
                 </div>
@@ -70,7 +62,7 @@
                                 <th>Alumno</th>
                                 <th>Concepto</th>
                                 <th>Monto</th>
-                                <th>Acción</th>
+                                <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -80,12 +72,18 @@
                                 <td class="fw-bold">{{ pago.alumno_nombre }}</td>
                                 <td><span class="badge bg-info text-dark">{{ pago.concepto }}</span></td>
                                 <td class="text-success fw-bold">${{ pago.monto }}</td>
-                                <td>
-                                    <a href="/eliminar_pago/{{ pago.id }}" 
-                                       class="btn btn-outline-danger btn-sm"
-                                       onclick="return confirm('¿Seguro que querés eliminar este registro de pago?')">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
+                                <td class="text-center">
+                                    <div class="btn-group">
+                                        <button onclick="imprimirRecibo('{{ pago.fecha.strftime('%d/%m/%Y') }}', '{{ pago.alumno_nombre }}', '{{ pago.concepto }}', '{{ pago.monto }}')" 
+                                                class="btn btn-outline-primary btn-sm" title="Imprimir Recibo">
+                                            <i class="fas fa-print"></i>
+                                        </button>
+                                        <a href="/eliminar_pago/{{ pago.id }}" 
+                                           class="btn btn-outline-danger btn-sm"
+                                           onclick="return confirm('¿Seguro que querés eliminar este registro de pago?')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -96,4 +94,36 @@
         </div>
     </div>
 </div>
+
+<script>
+function imprimirRecibo(fecha, alumno, concepto, monto) {
+    const ventana = window.open('', '_blank', 'width=600,height=400');
+    ventana.document.write(`
+        <html>
+            <head>
+                <title>Recibo de Pago</title>
+                <style>
+                    body { font-family: sans-serif; padding: 40px; text-align: center; border: 2px dashed #ccc; }
+                    .header { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+                    .detalle { text-align: left; margin-top: 30px; line-height: 2; }
+                    .monto { font-size: 20px; font-weight: bold; margin-top: 20px; border-top: 1px solid #000; padding-top: 10px; }
+                    .footer { margin-top: 50px; font-size: 12px; color: #666; }
+                </style>
+            </head>
+            <body>
+                <div class="header">{{ session['user_name'] or 'Recibo de Pago' }}</div>
+                <div class="detalle">
+                    <strong>Fecha:</strong> ${fecha}<br>
+                    <strong>Alumno:</strong> ${alumno}<br>
+                    <strong>Concepto:</strong> ${concepto}
+                </div>
+                <div class="monto">TOTAL: $${monto}</div>
+                <div class="footer">¡Gracias por entrenar con nosotros!</div>
+                <script>window.print(); window.close();<\/script>
+            </body>
+        </html>
+    `);
+    ventana.document.close();
+}
+</script>
 {% endblock %}
