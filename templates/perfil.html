@@ -1,0 +1,69 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="mb-0 fw-bold text-center">
+                        <i class="fas fa-user-cog me-2"></i>Configuración del Estudio
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form action="/perfil" method="POST" enctype="multipart/form-data">
+                        
+                        <div class="text-center mb-4">
+                            <label class="form-label d-block small fw-bold text-muted mb-3 text-uppercase">Logo del Estudio</label>
+                            <div class="position-relative d-inline-block">
+                                {% if session['user_logo'] %}
+                                    <img src="{{ url_for('static', filename='uploads/' + session['user_logo']) }}" 
+                                         class="img-thumbnail shadow-sm" 
+                                         style="width: 120px; height: 120px; object-fit: contain; background: white;">
+                                {% else %}
+                                    <div class="bg-light border rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm" 
+                                         style="width: 120px; height: 120px;">
+                                        <i class="fas fa-image fa-3x text-secondary"></i>
+                                    </div>
+                                    <p class="small text-muted mt-2">Sin logo cargado</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <hr class="my-4 opacity-25">
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Nombre de tu Estudio / App</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-signature text-muted"></i></span>
+                                <input type="text" name="nombre_estudio" class="form-control bg-light border-start-0" 
+                                       value="{{ session['user_name'] }}" required placeholder="Ej: Mauro Pilates">
+                            </div>
+                            <div class="form-text small">Este nombre aparecerá en la barra superior.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Cambiar Logo</label>
+                            <input type="file" name="logo" class="form-control" accept="image/*">
+                            <div class="form-text small">Se recomienda formato cuadrado (PNG o JPG). Máx 2MB.</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary fw-bold py-2 shadow-sm">
+                                <i class="fas fa-save me-2"></i>GUARDAR CAMBIOS
+                            </button>
+                            <a href="/" class="btn btn-link btn-sm text-decoration-none text-muted">Volver al Inicio</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="alert alert-info mt-3 border-0 shadow-sm" role="alert">
+                <small>
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Tip:</strong> Usar un logo con fondo transparente (PNG) hará que se vea mucho mejor en la barra de navegación.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
