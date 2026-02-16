@@ -1,80 +1,126 @@
 {% extends 'layout.html' %}
 {% block content %}
 <style>
-    /* --- VISTA PARA PC --- */
+    /* --- OPTIMIZACIÓN VISTA PC (GRILLA) --- */
     @media (min-width: 768px) {
-        .table-agenda { table-layout: fixed; border-spacing: 1px; display: table; }
+        .table-agenda { 
+            table-layout: fixed; 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0;
+            border: 1px solid #dee2e6;
+            display: table;
+        }
+        .table-agenda th {
+            background-color: #212529 !important;
+            color: white;
+            text-align: center;
+            padding: 12px 5px;
+            font-size: 0.8rem;
+            border: 1px solid #373b3e;
+        }
+        .table-agenda td {
+            border: 1px solid #ebebeb;
+            height: 100px; /* Altura fija para que sea una grilla real */
+            vertical-align: top;
+            padding: 0 !important;
+        }
+        .col-hora { 
+            width: 70px; 
+            background-color: #f8f9fa !important; 
+            font-weight: bold;
+            text-align: center;
+            vertical-align: middle !important;
+        }
+        /* Efecto Cebra para no marearse */
+        tr:nth-child(even) td:not(.col-hora) { background-color: #fafafa; }
+        
         .vista-celu { display: none; }
     }
 
-    /* --- VISTA PARA CELULAR --- */
+    /* --- OPTIMIZACIÓN VISTA CELULAR (LISTA) --- */
     @media (max-width: 767px) {
         .table-agenda { display: none; } 
         .vista-celu { display: block; }
-        .dia-card { margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #dee2e6; background: #fff; }
-        .dia-header { background: #212529; color: white; padding: 10px; font-weight: bold; text-align: center; }
-        .hora-row { display: flex; align-items: flex-start; padding: 10px; border-bottom: 1px solid #f0f0f0; }
-        .hora-label { width: 55px; font-weight: bold; font-size: 0.85rem; color: #495057; padding-top: 5px; }
-        .contenido-turno { flex-grow: 1; }
+        .dia-card { margin-bottom: 20px; border-radius: 10px; overflow: hidden; border: 1px solid #dee2e6; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .dia-header { background: #0d6efd; color: white; padding: 12px; font-weight: bold; text-align: center; font-size: 1.1rem; }
+        .hora-row { display: flex; padding: 12px; border-bottom: 1px solid #eee; background: white; }
+        .hora-label { width: 60px; font-weight: bold; color: #495057; }
     }
 
-    /* Estilos generales de los chips */
+    /* --- ESTILOS DE CHIPS Y DESPLEGABLES --- */
+    details { width: 100%; height: 100%; }
+    summary {
+        list-style: none;
+        padding: 8px 4px;
+        cursor: pointer;
+        text-align: center;
+        font-weight: bold;
+        font-size: 0.75rem;
+    }
+    summary::-webkit-details-marker { display: none; }
+
     .alumno-chip {
-        font-size: 0.85rem;
-        padding: 6px 10px;
-        background-color: #f8f9fa;
-        border-left: 4px solid #0d6efd;
-        border-radius: 4px;
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        margin: 2px 4px;
+        background: #ffffff;
+        border: 1px solid #dee2e6;
+        border-left: 3px solid #0d6efd;
+        border-radius: 3px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 4px;
-        color: #212529;
-        border: 1px solid #e9ecef;
+        box-shadow: 1px 1px 2px rgba(0,0,0,0.02);
     }
-    .turno-completo-bg { background-color: #198754 !important; color: white !important; }
+    
+    /* Colores por estado de cupo */
+    .cupo-vacio { color: #ced4da; }
+    .cupo-medio { color: #0d6efd; background: #e7f1ff; }
+    .cupo-lleno { color: #ffffff; background: #198754; }
 </style>
 
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body p-2 px-3 d-flex justify-content-between align-items-center">
-        <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-alt me-2 text-primary"></i>Agenda</h6>
+        <h5 class="fw-bold mb-0 text-dark d-none d-md-block">Agenda de Clases</h5>
         <div class="btn-group shadow-sm">
-            <a href="/agenda?fecha={{ (inicio - timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-white btn-sm border"><i class="fas fa-chevron-left"></i></a>
-            <span class="btn btn-white btn-sm border fw-bold small text-primary">{{ inicio.strftime('%d/%m') }}</span>
-            <a href="/agenda?fecha={{ (inicio + timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-white btn-sm border"><i class="fas fa-chevron-right"></i></a>
+            <a href="/agenda?fecha={{ (inicio - timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light btn-sm border"><i class="fas fa-chevron-left"></i></a>
+            <span class="btn btn-white btn-sm border fw-bold text-primary">{{ inicio.strftime('%d/%m') }} al {{ fin.strftime('%d/%m') }}</span>
+            <a href="/agenda?fecha={{ (inicio + timedelta(days=7)).strftime('%Y-%m-%d') }}" class="btn btn-light btn-sm border"><i class="fas fa-chevron-right"></i></a>
         </div>
-        <button class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalTurno">
-            <i class="fas fa-plus me-1"></i> NUEVO
+        <button class="btn btn-primary btn-sm px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalTurno">
+            <i class="fas fa-plus me-1"></i> NUEVO TURNO
         </button>
     </div>
 </div>
 
-<div class="table-responsive shadow-sm rounded d-none d-md-block">
+<div class="table-responsive d-none d-md-block shadow-sm rounded">
     <table class="table table-agenda mb-0 bg-white">
-        <thead class="bg-dark text-white text-center">
+        <thead>
             <tr>
-                <th style="width:75px;">HORA</th>
+                <th class="col-hora">HORA</th>
                 {% for d in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'] %}<th>{{ d }}</th>{% endfor %}
             </tr>
         </thead>
         <tbody>
             {% for h in horarios %}
             <tr>
-                <td class="text-center fw-bold bg-light small align-middle">{{ h }}</td>
+                <td class="col-hora small">{{ h }}</td>
                 {% for dia in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'] %}
-                    <td class="celda-turno drop-zone" data-dia="{{ dia }}" data-hora="{{ h }}" style="min-height:70px; border:1px solid #f0f0f0;">
+                    <td class="drop-zone" data-dia="{{ dia }}" data-hora="{{ h }}">
                         {% set alumnos_turno = [] %}
                         {% for t in turnos %}{% if t.dia_semana == dia and (t.hora.strftime('%H:%M') if t.hora.strftime else t.hora) == h %}{% set _ = alumnos_turno.append(t) %}{% endif %}{% endfor %}
                         
-                        <details>
-                            <summary class="p-2 text-center small fw-bold {{ 'text-success' if alumnos_turno|length >= 6 else 'text-primary' if alumnos_turno|length > 0 else 'text-muted' }}">
-                                {{ alumnos_turno|length }}/6
+                        {% set cant = alumnos_turno|length %}
+                        <details {% if cant > 0 %}open{% endif %}>
+                            <summary class="{% if cant >= 6 %}cupo-lleno{% elif cant > 0 %}cupo-medio{% else %}cupo-vacio{% endif %}">
+                                {% if cant >= 6 %}LLENO{% elif cant > 0 %}{{ cant }} / 6{% else %}-{% endif %}
                             </summary>
-                            <div class="p-1">
+                            <div class="lista-alumnos">
                                 {% for t in alumnos_turno %}
                                 <div class="alumno-chip draggable" draggable="true" data-id="{{ t.id }}">
-                                    <span class="text-truncate" style="max-width: 70px;">{{ t.apellido }}</span>
-                                    <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger">×</a>
+                                    <span class="text-truncate" title="{{ t.apellido }}">{{ t.apellido }}</span>
+                                    <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger ms-1" style="text-decoration:none;">×</a>
                                 </div>
                                 {% endfor %}
                             </div>
@@ -89,7 +135,7 @@
 
 <div class="vista-celu">
     {% for dia in ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'] %}
-    <div class="dia-card shadow-sm">
+    <div class="dia-card">
         <div class="dia-header">{{ dia }}</div>
         {% for h in horarios %}
             {% set alumnos_turno = [] %}
@@ -98,14 +144,14 @@
             {% if alumnos_turno|length > 0 %}
             <div class="hora-row">
                 <div class="hora-label">{{ h }}</div>
-                <div class="contenido-turno">
+                <div style="flex-grow: 1;">
                     {% for t in alumnos_turno %}
                     <div class="alumno-chip">
                         <span class="fw-bold">{{ t.apellido }}, {{ t.nombre }}</span>
-                        <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger ms-2"><i class="fas fa-times-circle"></i></a>
+                        <a href="/eliminar_turno/{{ t.id }}?fecha_ref={{ inicio.strftime('%Y-%m-%d') }}" class="text-danger"><i class="fas fa-trash-alt"></i></a>
                     </div>
                     {% endfor %}
-                    <div class="text-end"><small class="badge {{ 'bg-success' if alumnos_turno|length >= 6 else 'bg-light text-dark border' }}">{{ alumnos_turno|length }} de 6 alumnos</small></div>
+                    <div class="text-end mt-1"><small class="badge bg-light text-muted border">{{ 6 - alumnos_turno|length }} Libres</small></div>
                 </div>
             </div>
             {% endif %}
@@ -119,8 +165,8 @@
         <div class="modal-content border-0">
             <form action="/agregar_turno" method="POST">
                 <input type="hidden" name="fecha_inicio" value="{{ inicio.strftime('%Y-%m-%d') }}">
-                <div class="modal-header bg-primary text-white py-2">
-                    <h6 class="modal-title fw-bold">Nuevo Turno</h6>
+                <div class="modal-header bg-dark text-white py-2">
+                    <h6 class="modal-title fw-bold">Asignar Turno</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-3">
@@ -146,7 +192,7 @@
                     </div>
                 </div>
                 <div class="modal-footer border-0">
-                    <button type="submit" class="btn btn-primary w-100 fw-bold">AGENDAR</button>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">CONFIRMAR</button>
                 </div>
             </form>
         </div>
