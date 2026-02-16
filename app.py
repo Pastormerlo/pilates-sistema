@@ -118,7 +118,7 @@ def eliminar_alumno(id):
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- AGENDA PERMANENTE (VISTA RESPONSIVA L-V) ---
+# --- AGENDA PERMANENTE (L-V CON VISTA DUAL) ---
 @app.route('/agenda')
 @login_required
 def agenda():
