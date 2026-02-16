@@ -4,9 +4,10 @@ from functools import wraps
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'mauro_pilates_2026'
+app.secret_key = 'mauro_pilates_2026_pro'
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
@@ -24,23 +25,54 @@ def conectar():
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'admin' not in session:
+        if 'user_id' not in session:
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
+# --- SISTEMA DE LOGIN Y REGISTRO ---
+@app.route('/registro', methods=['GET', 'POST'])
+def registro():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = generate_password_hash(request.form.get('password'))
+        nombre_estudio = request.form.get('nombre_estudio')
+        
+        conn = conectar()
+        cur = conn.cursor()
+        try:
+            cur.execute("INSERT INTO usuarios (email, password, nombre_estudio) VALUES (%s, %s, %s)",
+                       (email, password, nombre_estudio))
+            conn.commit()
+            return redirect(url_for('login'))
+        except:
+            return "El email ya está registrado."
+        finally:
+            conn.close()
+    return render_template('registro.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        if request.form.get('username') == 'admin' and request.form.get('password') == 'admin123':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        conn = conectar()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM usuarios WHERE email = %s", (email,))
+        user = cur.fetchone()
+        conn.close()
+        
+        if user and check_password_hash(user['password'], password):
             session.clear()
-            session['admin'] = True
+            session['user_id'] = user['id']
+            session['user_name'] = user['nombre_estudio']
             return redirect(url_for('index'))
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    session.pop('admin', None)
+    session.clear()
     return redirect(url_for('login'))
 
 @app.route('/')
@@ -48,13 +80,13 @@ def logout():
 def index():
     return render_template('index.html')
 
-# --- GESTIÓN DE ALUMNOS (13 CAMPOS + EDICIÓN) ---
+# --- GESTIÓN DE ALUMNOS (FILTRADO POR USUARIO) ---
 @app.route('/alumnos')
 @login_required
 def alumnos():
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM alumnos ORDER BY apellido ASC, nombre ASC")
+    cur.execute("SELECT * FROM alumnos WHERE user_id = %s ORDER BY apellido ASC", (session['user_id'],))
     alumnos_data = cur.fetchall()
     conn.close()
     return render_template('alumnos.html', alumnos=alumnos_data)
@@ -69,14 +101,15 @@ def agregar_alumno():
         request.form.get('fecha_nacimiento') or None,
         request.form.get('peso') or None, request.form.get('altura') or None,
         request.form.get('patologias_cirugias'), request.form.get('obra_social'),
-        request.form.get('medico_cabecera'), request.form.get('observaciones')
+        request.form.get('medico_cabecera'), request.form.get('observaciones'),
+        session['user_id']
     )
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO alumnos (nombre, apellido, dni, domicilio, telefono, contacto_emergencia, 
-        fecha_nacimiento, peso, altura, patologias_cirugias, obra_social, medico_cabecera, observaciones)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        fecha_nacimiento, peso, altura, patologias_cirugias, obra_social, medico_cabecera, observaciones, user_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, datos)
     conn.commit()
     conn.close()
@@ -93,7 +126,7 @@ def editar_alumno(id):
         request.form.get('peso') or None, request.form.get('altura') or None,
         request.form.get('patologias_cirugias'), request.form.get('obra_social'),
         request.form.get('medico_cabecera'), request.form.get('observaciones'),
-        id
+        id, session['user_id']
     )
     conn = conectar()
     cur = conn.cursor()
@@ -102,7 +135,7 @@ def editar_alumno(id):
         nombre=%s, apellido=%s, dni=%s, domicilio=%s, telefono=%s, contacto_emergencia=%s, 
         fecha_nacimiento=%s, peso=%s, altura=%s, patologias_cirugias=%s, obra_social=%s, 
         medico_cabecera=%s, observaciones=%s 
-        WHERE id=%s
+        WHERE id=%s AND user_id=%s
     """, datos)
     conn.commit()
     conn.close()
@@ -113,12 +146,12 @@ def editar_alumno(id):
 def eliminar_alumno(id):
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("DELETE FROM alumnos WHERE id = %s", (id,))
+    cur.execute("DELETE FROM alumnos WHERE id = %s AND user_id = %s", (id, session['user_id']))
     conn.commit()
     conn.close()
     return redirect(url_for('alumnos'))
 
-# --- AGENDA PERMANENTE (L-V CON VISTA DUAL) ---
+# --- AGENDA (FILTRADA POR USUARIO) ---
 @app.route('/agenda')
 @login_required
 def agenda():
@@ -133,10 +166,10 @@ def agenda():
     cur.execute("""
         SELECT t.*, a.nombre, a.apellido FROM turnos t 
         JOIN alumnos a ON t.alumno_id = a.id 
-        ORDER BY t.hora ASC
-    """)
+        WHERE t.user_id = %s ORDER BY t.hora ASC
+    """, (session['user_id'],))
     turnos = cur.fetchall()
-    cur.execute("SELECT id, nombre, apellido FROM alumnos ORDER BY apellido ASC")
+    cur.execute("SELECT id, nombre, apellido FROM alumnos WHERE user_id = %s ORDER BY apellido ASC", (session['user_id'],))
     alumnos_list = cur.fetchall()
     conn.close()
     return render_template('agenda.html', turnos=turnos, alumnos=alumnos_list, 
@@ -148,8 +181,8 @@ def agenda():
 def agregar_turno():
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("INSERT INTO turnos (alumno_id, dia_semana, hora) VALUES (%s, %s, %s)",
-               (request.form.get('alumno_id'), request.form.get('dia_semana'), request.form.get('hora')))
+    cur.execute("INSERT INTO turnos (alumno_id, dia_semana, hora, user_id) VALUES (%s, %s, %s, %s)",
+               (request.form.get('alumno_id'), request.form.get('dia_semana'), request.form.get('hora'), session['user_id']))
     conn.commit()
     conn.close()
     return redirect(url_for('agenda', fecha=request.form.get('fecha_inicio')))
@@ -160,8 +193,8 @@ def mover_turno():
     data = request.json
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("UPDATE turnos SET dia_semana=%s, hora=%s WHERE id=%s", 
-               (data.get('dia_semana'), data.get('hora'), data.get('id')))
+    cur.execute("UPDATE turnos SET dia_semana=%s, hora=%s WHERE id=%s AND user_id=%s", 
+               (data.get('dia_semana'), data.get('hora'), data.get('id'), session['user_id']))
     conn.commit()
     conn.close()
     return jsonify(status="ok")
@@ -172,33 +205,30 @@ def eliminar_turno(id):
     fecha_ref = request.args.get('fecha_ref')
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("DELETE FROM turnos WHERE id = %s", (id,))
+    cur.execute("DELETE FROM turnos WHERE id = %s AND user_id = %s", (id, session['user_id']))
     conn.commit()
     conn.close()
     return redirect(url_for('agenda', fecha=fecha_ref))
 
-# --- FACTURACIÓN ---
+# --- FACTURACIÓN (FILTRADA) ---
 @app.route('/facturacion')
 @login_required
 def facturacion():
     mes_filtro = request.args.get('mes_filtro')
     conn = conectar()
     cur = conn.cursor()
-    cur.execute("SELECT id, nombre, apellido FROM alumnos ORDER BY apellido ASC")
+    cur.execute("SELECT id, nombre, apellido FROM alumnos WHERE user_id = %s ORDER BY apellido ASC", (session['user_id'],))
     alumnos_cobro = cur.fetchall()
     
+    query = "SELECT p.*, a.nombre || ' ' || a.apellido as alumno_nombre FROM pagos p JOIN alumnos a ON p.alumno_id = a.id WHERE p.user_id = %s"
+    params = [session['user_id']]
+    
     if mes_filtro and mes_filtro != "Todos":
-        cur.execute("""
-            SELECT p.*, a.nombre || ' ' || a.apellido as alumno_nombre 
-            FROM pagos p JOIN alumnos a ON p.alumno_id = a.id 
-            WHERE p.concepto LIKE %s ORDER BY p.fecha DESC
-        """, (f"%{mes_filtro}%",))
-    else:
-        cur.execute("""
-            SELECT p.*, a.nombre || ' ' || a.apellido as alumno_nombre 
-            FROM pagos p JOIN alumnos a ON p.alumno_id = a.id 
-            ORDER BY p.fecha DESC LIMIT 100
-        """)
+        query += " AND p.concepto LIKE %s"
+        params.append(f"%{mes_filtro}%")
+    
+    query += " ORDER BY p.fecha DESC LIMIT 100"
+    cur.execute(query, params)
     pagos = cur.fetchall()
     conn.close()
     return render_template('facturacion.html', alumnos=alumnos_cobro, pagos=pagos, 
@@ -211,9 +241,9 @@ def registrar_pago():
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
-        INSERT INTO pagos (alumno_id, monto, concepto, estado, fecha) 
-        VALUES (%s, %s, %s, 'Pagado', CURRENT_DATE)
-    """, (request.form.get('alumno_id'), request.form.get('monto'), concepto_final))
+        INSERT INTO pagos (alumno_id, monto, concepto, estado, fecha, user_id) 
+        VALUES (%s, %s, %s, 'Pagado', CURRENT_DATE, %s)
+    """, (request.form.get('alumno_id'), request.form.get('monto'), concepto_final, session['user_id']))
     conn.commit()
     conn.close()
     return redirect(url_for('facturacion'))
